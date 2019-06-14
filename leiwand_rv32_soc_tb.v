@@ -46,7 +46,7 @@ module leiwand_rv32_core_tb();
     );
 
     leiwand_rv32_ram #(
-        .MEM_WIDTH(32),
+        .MEM_WIDTH(`MEM_WIDTH),
         .MEM_SIZE(MEMORY_SIZE)
     ) internal_sram (
         clk,
@@ -63,7 +63,7 @@ module leiwand_rv32_core_tb();
     );
 
     leiwand_rv32_ram #(
-        .MEM_WIDTH(32),
+        .MEM_WIDTH(`MEM_WIDTH),
         .MEM_SIZE(MEMORY_SIZE)
     ) internal_rom (
         clk,
