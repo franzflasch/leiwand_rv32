@@ -27,11 +27,12 @@ module leiwand_rv32_core
     parameter STAGE_INSTR_WRITEBACK = 4;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
-    parameter PC_START_VAL = `MEM_WIDTH'h00100000;
+    parameter PC_START_VAL = `MEM_WIDTH'h10000000;
 
     /* RISC-V Registers x0-x31 */
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
     reg [(`MEM_WIDTH-1):0] pc;
+    reg [(`MEM_WIDTH-1):0] next_instruction;
 
     reg bus_read_write;
     reg bus_ready;
@@ -85,38 +86,67 @@ module leiwand_rv32_core
             /* Initialize program counter */
             pc <= PC_START_VAL;
 
+            cpu_stage <= STAGE_INSTR_FETCH;
+
             /* Just for testing */
-            i <= 0;
+            //i <= 0;
         end
         else begin
 
-            /* Just for testing */
-            if(bus_ready && !bus_access) begin
-                bus_addr <= `MEM_WIDTH'h20000000 + i;
-                bus_data_out <= `MEM_WIDTH'h00000042 + i;
-                bus_access <= 1;
+            // /* Just for testing */
+            // if(bus_ready && !bus_access) begin
+            //     bus_addr <= `MEM_WIDTH'h20000000 + i;
+            //     bus_data_out <= `MEM_WIDTH'h00000042 + i;
+            //     bus_access <= 1;
 
-                i <= i + 1;
-                if(i>=127) begin
-                    i <= 0;
-                    bus_addr <= 0;
-                    bus_data_out <= 0;
-                    bus_access <= 0;
-                    bus_read_write <= !bus_read_write;
-                end
-            end
+            //     i <= i + 1;
+            //     if(i>=127) begin
+            //         i <= 0;
+            //         bus_addr <= 0;
+            //         bus_data_out <= 0;
+            //         bus_access <= 0;
+            //         bus_read_write <= !bus_read_write;
+            //     end
+            // end
 
             case (cpu_stage)
+
                 STAGE_INSTR_FETCH: begin
+                    if(bus_ready && !bus_access) begin
+                        bus_addr <= pc;
+                        bus_data_out <= 0;
+                        bus_access <= 1;
+                        bus_read_write <= 0;
+                        cpu_stage <= STAGE_INSTR_DECODE;
+                    end
                 end
+
                 STAGE_INSTR_DECODE: begin
+                    if(bus_ready && !bus_access) begin
+                        next_instruction <= bus_data_in;
+                        cpu_stage <= STAGE_INSTR_EXECUTE;
+                    end
                 end
+
                 STAGE_INSTR_EXECUTE: begin
+                    if(bus_ready && !bus_access) begin
+                        cpu_stage <= STAGE_INSTR_ACCESS;
+                    end
                 end
+
                 STAGE_INSTR_ACCESS: begin
+                    if(bus_ready && !bus_access) begin
+                        cpu_stage <= STAGE_INSTR_WRITEBACK;
+                    end
                 end
+
                 STAGE_INSTR_WRITEBACK: begin
+                    if(bus_ready && !bus_access) begin
+                        pc <= pc + 4;
+                        cpu_stage <= STAGE_INSTR_FETCH;
+                    end
                 end
+
             endcase
 
 
