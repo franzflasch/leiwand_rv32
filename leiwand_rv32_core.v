@@ -195,9 +195,12 @@ module leiwand_rv32_core
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
                             else begin 
+                                $display("Unknown instruction!");
                                 /* Unknown instruction */
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+
+                            pc <= pc + 4;
                         end
 
                         STAGE_INSTR_ACCESS: begin
@@ -205,7 +208,6 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_WRITEBACK: begin
-                            pc <= pc + 4;
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
 

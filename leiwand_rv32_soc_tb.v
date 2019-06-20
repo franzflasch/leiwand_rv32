@@ -89,8 +89,14 @@ module leiwand_rv32_core_tb();
         clk=0;
         forever #2 clk=~clk;
     end
+   
+    integer i;
 
     initial begin
+        for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
+            internal_sram.mem[i] <= `MEM_WIDTH'h42 + i;
+        end
+
         $display ("clk: %d", clk);
         #5
         reset=0;
@@ -98,28 +104,34 @@ module leiwand_rv32_core_tb();
         reset=1;
         #5
         reset=0;
-    end
-    
-    integer i;
 
-    initial begin
-        for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            internal_sram.mem[i] <= `MEM_WIDTH'h42 + i;
+        for (i = 0; i < 100; i = i + 1) begin
+            wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
+            $display("\n");
+            $display("cycle: %d", i);
+            $display("stage: %d", cpu_core.cpu_stage);
+            $display("pc: %x", cpu_core.pc);
+            $display("instr: %x", cpu_core.instruction);
+
+            wait (cpu_core.cpu_stage != cpu_core.STAGE_INSTR_FETCH);
         end
+
+        $finish;
     end 
 
     initial begin
-        $dumpfile("leiwand_rv32_soc_tb.vcd");
-        $dumpvars(0,leiwand_rv32_core_tb);
-        for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
-            $dumpvars(0, cpu_core.x[i]);
-        end
+        // $dumpfile("leiwand_rv32_soc_tb.vcd");
 
-        for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            $dumpvars(0, internal_rom.mem[i]);
-        end
+        // $dumpvars(0,leiwand_rv32_core_tb);
+        // for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
+        //     $dumpvars(0, cpu_core.x[i]);
+        // end
 
-        # 15000 $finish;
+        // for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
+        //     $dumpvars(0, internal_rom.mem[i]);
+        // end
+
+        // # 15000 $finish;
     end
 
 endmodule 
