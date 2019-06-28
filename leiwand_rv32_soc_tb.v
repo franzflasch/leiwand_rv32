@@ -5,7 +5,7 @@
 
 module leiwand_rv32_core_tb();
 
-    parameter MEMORY_SIZE = 128;
+    parameter MEMORY_SIZE = 1024;
 
     reg clk = 0;
     reg reset = 0;
@@ -89,13 +89,28 @@ module leiwand_rv32_core_tb();
         clk=0;
         forever #2 clk=~clk;
     end
+
+    `define SEEK_SET 0
+    `define SEEK_CUR 1
+    `define SEEK_END 2
    
-    integer i;
+    integer i, j;
+    integer file_size, file, start, count, tmp;
 
     initial begin
+
+        file = $fopenr("jal_leiwandrv32.bin");
+
+        file_size = $fseek(file, 0, `SEEK_END); /* End of file */
+        file_size = $ftell(file);
+        tmp = $fseek(file, 0, `SEEK_SET);
+        tmp = $fread(internal_rom.mem, file, 0, file_size);
+
+        $display("file size: %d", file_size);
+
         for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            internal_sram.mem[i] = `MEM_WIDTH'h42 + i;
-            $display ("internal ram %d: %x", i, internal_sram.mem[i]);
+            internal_rom.mem[i] = {{internal_rom.mem[i][07:00]}, {internal_rom.mem[i][15:08]}, {internal_rom.mem[i][23:16]}, {internal_rom.mem[i][31:24]}};
+            $display ("internal ram %d: %x", i, internal_rom.mem[i]);
         end
 
         $display ("clk: %d", clk);
@@ -106,15 +121,20 @@ module leiwand_rv32_core_tb();
         #5
         reset=0;
 
-        for (i = 0; i < 100; i = i + 1) begin
+        for (i = 0; i < 100; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
+            wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_EXECUTE);
+
             $display("\n");
             $display("cycle: %d", i);
             $display("stage: %d", cpu_core.cpu_stage);
-            $display("pc: %x", cpu_core.pc);
+            $display("pc: %x", cpu_core.pc-4);
             $display("instr: %x", cpu_core.instruction);
 
-            wait (cpu_core.cpu_stage != cpu_core.STAGE_INSTR_FETCH);
+            for(j = 0; j < 32; j++ ) begin
+                $display("x[%2d]: %x", j, cpu_core.x[j]);
+            end
+
         end
 
         $finish;
