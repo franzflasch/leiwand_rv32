@@ -1,0 +1,17 @@
+# You can also start the tests with qemu with this command:
+qemu-system-riscv32 -nographic -machine sifive_e -kernel addi.elf -d in_asm,cpu -s -S
+
+# After qemu is started you need to connect via gdb to single step through all instructions:
+riscv32-none-elf-gdb -ex "target remote localhost:1234" -ex "b _start" -ex "c" addi.elf
+
+# Single instruction step would be:
+stepi or si
+
+# A good workflow would be to set the breakpoint to the "pass" function to check if the test reaches the end of the tests:
+riscv32-none-elf-gdb -ex "target remote localhost:1234" -ex "b pass" bne.elf
+
+# If the CPU breaks at the pass function everything should be fine. You can also scrollback the qemu monitor output to check 
+# instructions and register values.
+
+# Kill qemu with this command:
+kill -9 $(pidof qemu-system-riscv32)

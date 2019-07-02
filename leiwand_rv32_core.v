@@ -35,7 +35,7 @@ module leiwand_rv32_core
     parameter STAGE_INSTR_WRITEBACK = 4;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
-    parameter PC_START_VAL = `MEM_WIDTH'h20000000;
+    parameter PC_START_VAL = `MEM_WIDTH'h20400000;
 
     /* RISC-V Registers x0-x31 */
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
@@ -169,14 +169,16 @@ module leiwand_rv32_core
                             if ( (bus_data_in[6:0] == OP_LUI) || (bus_data_in[6:0] == OP_AUIPC) ) begin
                                 rd[4:0] <= bus_data_in[11:7];
                                 immediate <= bus_data_in[31:12];
-                            end                            
+                            end
+
                             /* I-Type instruction */
-                            if ( (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) || (bus_data_in[6:0] == OP_JALR) ) begin
+                            else if ( (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) || (bus_data_in[6:0] == OP_JALR) ) begin
                                 rs1[4:0] <= bus_data_in[19:15];
                                 rs2_shamt[4:0] <= bus_data_in[24:20];
                                 rd[4:0] <= bus_data_in[11:7];
                                 immediate <= bus_data_in[31:20];
                             end
+
                             /* B-Type instruction */
                             else if (bus_data_in[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) begin
                                 rs1[4:0] <= bus_data_in[19:15];
@@ -202,7 +204,7 @@ module leiwand_rv32_core
                                 `debug($display("INSTR LUI");)
                             end
                             /* AUIPC */
-                            if ( (instruction[6:0] == OP_AUIPC) ) begin
+                            else if ( (instruction[6:0] == OP_AUIPC) ) begin
                                 x[rd] <= (pc - 4) + (immediate << 12);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR AUIPC");)
@@ -306,12 +308,8 @@ module leiwand_rv32_core
                             end
                             /* XORI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_XORI) ) begin
-                                if ($signed(immediate[11:0]) == -1) begin
-                                    x[rd] <= (x[rs1] ^ 1);
-                                end
-                                else begin
-                                    x[rd] <= (x[rs1] ^ immediate[11:0]);
-                                end
+                                if ($signed(immediate[11:0]) == -1) x[rd] <= (x[rs1] ^ 1);
+                                else x[rd] <= (x[rs1] ^ immediate[11:0]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR XORI");)
                             end
