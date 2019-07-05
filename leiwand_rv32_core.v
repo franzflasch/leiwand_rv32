@@ -97,7 +97,7 @@ module leiwand_rv32_core
             x[2]  <= 0;
             x[3]  <= 0;
             x[4]  <= 0;
-            x[5]  <= 0;
+            x[5]  <= 32'h20400000; // This is only because of comparison with qemu
             x[6]  <= 0;
             x[7]  <= 0;
             x[8]  <= 0;
