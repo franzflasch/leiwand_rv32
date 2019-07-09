@@ -27,13 +27,12 @@ module leiwand_rv32_core
         output [(`MEM_WIDTH-1):0] o_data
     );
 
-    /* Classic 5 RISC Stages (currently not pipelined) */
+    /* Currently 4 Stages (not pipelined) */
     parameter STAGE_INSTR_FETCH = 0;
     parameter STAGE_INSTR_DECODE = 1;
     parameter STAGE_INSTR_EXECUTE = 2;
     parameter STAGE_INSTR_ACCESS = 3;
-    parameter STAGE_INSTR_WRITEBACK = 4;
-    reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
+    reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_ACCESS):0] cpu_stage;
 
     parameter PC_START_VAL = `MEM_WIDTH'h20400000;
 
@@ -119,6 +118,13 @@ module leiwand_rv32_core
     parameter FUNC3_CSRRWI = 3'b101;
     parameter FUNC3_CSRRSI = 3'b110;
     parameter FUNC3_CSRRCI = 3'b111;
+
+    parameter OP_LB_LH_LW_LBU_LHU = 7'b0000011;
+    parameter FUNC3_LB = 3'b000;
+    parameter FUNC3_LH = 3'b001;
+    parameter FUNC3_LW = 3'b010;
+    parameter FUNC3_LBU = 3'b100;
+    parameter FUNC3_LHU = 3'b101;
 
     /* opcode registers 1 */
     reg [4:0] rs1;
@@ -221,7 +227,8 @@ module leiwand_rv32_core
                                       (bus_data_in[6:0] == OP_JALR) || 
                                       (bus_data_in[6:0] == OP_FENCE_FENCEI) ||
                                       (bus_data_in[6:0] == OP_FENCE_FENCEI) ||
-                                      (bus_data_in[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) ) begin
+                                      (bus_data_in[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) ||
+                                      (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
                                 rs1[4:0] <= bus_data_in[19:15];
                                 rs2_shamt[4:0] <= bus_data_in[24:20];
                                 rd[4:0] <= bus_data_in[11:7];
@@ -337,6 +344,16 @@ module leiwand_rv32_core
                             /* LB */
                             /* LH */
                             /* LW */
+                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
+                                //if(immediate[11]) bus_addr <= ( x[rs1] + $signed(immediate[31:0] | 32'hFFFFF000) );
+                                //else bus_addr <= ( x[rs1] + $signed(immediate[31:0]) );
+                                bus_addr <= ( $signed(x[rs1]) + $signed(immediate[11:0]) );
+                                bus_data_out <= 0;
+                                bus_access <= 1;
+                                bus_read_write <= 0;
+                                cpu_stage <= STAGE_INSTR_ACCESS;
+                                `debug($display("INSTR LB_LH_LW_LBU_LHU");)
+                            end
                             /* LBU */
                             /* LHU */
                             /* SB */
@@ -570,10 +587,74 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_ACCESS: begin
-                            cpu_stage <= STAGE_INSTR_WRITEBACK;
-                        end
+                            if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
+                                 (instruction[14:12] == FUNC3_LB) ) begin
+                                 if(bus_addr[1:0] == 0) begin
+                                    if(bus_data_in[7]) x[rd] <= (bus_data_in[7:0] | 32'hFFFFFF00);
+                                    else x[rd] <= (bus_data_in[7:0]);
+                                 end
+                                 else if(bus_addr[1:0] == 1) begin
+                                    if(bus_data_in[15]) x[rd] <= (bus_data_in[15:8] | 32'hFFFFFF00);
+                                    else x[rd] <= (bus_data_in[15:8]);
+                                 end
+                                 else if(bus_addr[1:0] == 2) begin
+                                    if(bus_data_in[23]) x[rd] <= (bus_data_in[23:16] | 32'hFFFFFF00);
+                                    else x[rd] <= (bus_data_in[23:16]);
+                                 end
+                                 else if(bus_addr[1:0] == 3) begin
+                                    if(bus_data_in[31]) x[rd] <= (bus_data_in[31:24] | 32'hFFFFFF00);
+                                    else x[rd] <= (bus_data_in[31:24]);
+                                 end
+                                `debug($display("INSTR LB ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                            end
+                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
+                                 (instruction[14:12] == FUNC3_LH) ) begin
+                                 if(bus_addr[1]) begin
+                                    if(bus_data_in[31]) x[rd] <= (bus_data_in[31:16] | 32'hFFFF0000);
+                                    else x[rd] <= (bus_data_in[31:16]);
+                                 end
+                                 else begin 
+                                    if(bus_data_in[15]) x[rd] <= (bus_data_in[15:0] | 32'hFFFF0000);
+                                    else x[rd] <= (bus_data_in[15:0]);
+                                 end
+                                `debug($display("INSTR LH ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                            end
+                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
+                                 (instruction[14:12] == FUNC3_LW) ) begin
+                                x[rd] <= bus_data_in;
+                                `debug($display("INSTR LW ACCESS");)
+                            end
+                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
+                                 (instruction[14:12] == FUNC3_LBU) ) begin
+                                 if(bus_addr[1:0] == 0) begin
+                                    x[rd] <= (bus_data_in[7:0] & 32'h000000FF);
+                                 end
+                                 else if(bus_addr[1:0] == 1) begin
+                                    x[rd] <= (bus_data_in[15:8] & 32'h000000FF);
+                                 end
+                                 else if(bus_addr[1:0] == 2) begin
+                                    x[rd] <= (bus_data_in[23:16] & 32'h000000FF);
+                                 end
+                                 else if(bus_addr[1:0] == 3) begin
+                                    x[rd] <= (bus_data_in[31:24] & 32'h000000FF);
+                                 end
+                                `debug($display("INSTR LBU ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                            end
+                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
+                                 (instruction[14:12] == FUNC3_LHU) ) begin
+                                 if(bus_addr[1]) begin
+                                    x[rd] <= (bus_data_in[31:16]) & 32'h0000FFFF;
+                                 end
+                                 else begin 
+                                    x[rd] <= (bus_data_in[15:0]) & 32'h0000FFFF;
+                                 end
+                                `debug($display("INSTR LHU ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                            end
+                            else begin 
+                                `debug($display("Unknown access instruction! %x", instruction);)
+                                /* Unknown instruction */
+                            end
 
-                        STAGE_INSTR_WRITEBACK: begin
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
 

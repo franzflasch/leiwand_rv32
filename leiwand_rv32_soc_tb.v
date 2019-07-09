@@ -5,7 +5,7 @@
 
 module leiwand_rv32_core_tb();
 
-    parameter MEMORY_SIZE = 1024;
+    parameter MEMORY_SIZE = 4096;
 
     reg clk = 0;
     reg reset = 0;
