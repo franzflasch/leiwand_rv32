@@ -31,14 +31,14 @@ srli
 srai
 add
 sub
-# sll
-# slt
-# sltu
-# xor
-# srl
-# sra
-# or
-# and
+sll
+slt
+sltu
+xor
+srl
+sra
+or
+and
 # #fence
 # #fence_i
 # #ecall
