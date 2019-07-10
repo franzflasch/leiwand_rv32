@@ -132,6 +132,8 @@ module leiwand_rv32_core
     reg [4:0] rd;
     reg [(`MEM_WIDTH-1):0] immediate;
 
+    reg is_load_store_instruction;
+
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -181,6 +183,8 @@ module leiwand_rv32_core
 
             /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
+
+            is_load_store_instruction <= 0;
 
         end
         else begin
@@ -233,6 +237,8 @@ module leiwand_rv32_core
                                 rs2_shamt[4:0] <= bus_data_in[24:20];
                                 rd[4:0] <= bus_data_in[11:7];
                                 immediate <= bus_data_in[31:20];
+
+                                is_load_store_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
                             end
 
                             /* B-Type instruction */
@@ -262,27 +268,23 @@ module leiwand_rv32_core
                             /* LUI */
                             if ( (instruction[6:0] == OP_LUI) ) begin
                                 x[rd] <= (immediate << 12);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR LUI");)
                             end
                             /* AUIPC */
                             else if ( (instruction[6:0] == OP_AUIPC) ) begin
                                 x[rd] <= (pc - 4) + (immediate << 12);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR AUIPC");)
                             end
                             /* JAL */
                             else if (instruction[6:0] == OP_JAL) begin
                                 x[rd] <= pc;
                                 pc <= (pc - 4) + { {11{immediate[20]}}, immediate[20:0] };
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR JAL");)
                             end
                             /* JALR */
                             else if ( (instruction[6:0] == OP_JALR) && (instruction[14:12] == FUNC3_JALR) ) begin
                                 x[rd] <= pc;
-                                pc <= ( x[rs1] + { {20{immediate[11]}}, immediate[11:0] } & 32'hFFFFFFFE );
-                                cpu_stage <= STAGE_INSTR_FETCH;
+                                pc <= ( {x[rs1][31:1], 1'b0} + { {20{immediate[11]}}, immediate[11:1], 1'b0 } );
                                 `debug($display("INSTR JALR");)
                             end
                             /* BEQ */
@@ -290,7 +292,6 @@ module leiwand_rv32_core
                                 if(x[rs1] == x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
@@ -298,7 +299,6 @@ module leiwand_rv32_core
                                 if(x[rs1] != x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BNE");)
                             end
                             /* BLT */
@@ -306,7 +306,6 @@ module leiwand_rv32_core
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BLT");)
                             end
                             /* BGE */
@@ -314,7 +313,6 @@ module leiwand_rv32_core
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BGE");)
                             end
                             /* BLTU */
@@ -322,7 +320,6 @@ module leiwand_rv32_core
                                 if(x[rs1] < x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BLTU");)
                             end
                             /* BGEU */
@@ -330,7 +327,6 @@ module leiwand_rv32_core
                                 if(x[rs1] >= x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BGEU");)
                             end
                             /* LB *//* LH *//* LW *//* LBU *//* LHU */
@@ -349,14 +345,12 @@ module leiwand_rv32_core
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
                                       (instruction[14:12] == FUNC3_ADDI) ) begin
                                 x[rd] <= ($signed(x[rs1]) + $signed(immediate[11:0]));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR ADDI");)
                             end
                             /* SLTI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
                                       (instruction[14:12] == FUNC3_SLTI) ) begin
                                 x[rd] <= ($signed(x[rs1]) < $signed(immediate[11:0]));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLTI");)
                             end
                             /* SLTIU */
@@ -364,7 +358,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SLTIU) ) begin
                                 if(immediate[11]) x[rd] <= x[rs1] < ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= x[rs1] < immediate[31:0];
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLTIU");)
                             end
                             /* XORI */
@@ -372,7 +365,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_XORI) ) begin
                                 if(immediate[11]) x[rd] <= x[rs1] ^ ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] ^ immediate[31:0]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR XORI");)
                             end
                             /* ORI */
@@ -380,7 +372,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_ORI) ) begin
                                 if(immediate[11]) x[rd] <= x[rs1] | ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] | immediate[31:0]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR ORI");)
                             end
                             /* ANDI */
@@ -388,7 +379,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_ANDI) ) begin
                                 if(immediate[11]) x[rd] <= x[rs1] & ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] & immediate[31:0]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR ANDI");)
                             end
                             /* SLLI */
@@ -396,7 +386,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SLLI) && 
                                       (instruction[31:25] == FUNC7_SLLI) ) begin
                                 x[rd] <= x[rs1] << rs2_shamt[4:0];
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLLI");)
                             end
                             /* SRLI */
@@ -404,7 +393,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SRLI) && 
                                       (instruction[31:25] == FUNC7_SRLI) ) begin
                                 x[rd] <= x[rs1] >> rs2_shamt[4:0];
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SRLI");)
                             end
                             /* SRAI */
@@ -413,7 +401,6 @@ module leiwand_rv32_core
                                       (instruction[31:25] == FUNC7_SRAI) ) begin
                                 /* Arithmetic shift is >>> */
                                 x[rd] <= ($signed(x[rs1]) >>> rs2_shamt[4:0]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SRAI");)
                             end
                             /* ADD */
@@ -421,7 +408,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_ADD) && 
                                       (instruction[31:25] == FUNC7_ADD) ) begin
                                 x[rd] <= (x[rs1] + x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR ADD");)
                             end
                             /* SUB */
@@ -429,14 +415,12 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SUB) && 
                                       (instruction[31:25] == FUNC7_SUB) ) begin
                                 x[rd] <= (x[rs1] - x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SUB");)
                             end
                             /* SLL */
                             else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
                                       (instruction[14:12] == FUNC3_SLL) && (instruction[31:25] == FUNC7_SLL) ) begin
                                 x[rd] <= (x[rs1] << (x[rs2_shamt] & 'h1F));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLL");)
                             end
                             /* SLT */
@@ -444,7 +428,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SLT) && 
                                       (instruction[31:25] == FUNC7_SLT) ) begin
                                 x[rd] <= ($signed(x[rs1]) < $signed(x[rs2_shamt]));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLT");)
                             end
                             /* SLTU */
@@ -452,7 +435,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SLTU) && 
                                       (instruction[31:25] == FUNC7_SLTU) ) begin
                                 x[rd] <= (x[rs1] < x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SLTU");)
                             end
                             /* XOR */
@@ -460,7 +442,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_XOR) && 
                                       (instruction[31:25] == FUNC7_XOR) ) begin
                                 x[rd] <= (x[rs1] ^ x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR XOR");)
                             end                            
                             /* SRL */
@@ -468,7 +449,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SRL) && 
                                       (instruction[31:25] == FUNC7_SRL) ) begin
                                 x[rd] <= (x[rs1] >> (x[rs2_shamt] & 'h1F));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SRL");)
                             end
                             /* SRA */
@@ -476,7 +456,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_SRA) && 
                                       (instruction[31:25] == FUNC7_SRA) ) begin
                                 x[rd] <= ($signed(x[rs1]) >>> (x[rs2_shamt] & 'h1F));
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR SRA");)
                             end
                             /* OR */
@@ -484,7 +463,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_OR) && 
                                       (instruction[31:25] == FUNC7_OR) ) begin
                                 x[rd] <= (x[rs1] | x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR OR");)
                             end
                             /* AND */
@@ -492,19 +470,16 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_AND) && 
                                       (instruction[31:25] == FUNC7_AND) ) begin
                                 x[rd] <= (x[rs1] & x[rs2_shamt]);
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR AND");)
                             end
                             /* FENCE */
                             else if ( (instruction[6:0] == OP_FENCE_FENCEI) && (instruction[14:12] == FUNC3_FENCE) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR FENCE");)
                             end
                             /* FENCE.I */
                             else if ( (instruction[6:0] == OP_FENCE_FENCEI) && (instruction[14:12] == FUNC3_FENCEI) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR FENCEI");)
                             end
                             /* ECALL */
@@ -512,7 +487,6 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_ECALL) && 
                                       (instruction[31:20] == IMM11_ECALL) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR ECALL");)
                             end
                             /* EBREAK */
@@ -520,56 +494,50 @@ module leiwand_rv32_core
                                       (instruction[14:12] == FUNC3_EBREAK) && 
                                       (instruction[31:20] == IMM11_EBREAK) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR EBREAK");)
                             end
                             /* CSRRW */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRW) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRW");)
                             end
                             /* CSRRS */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRS) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRS");)
                             end
                             /* CSRRC */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRC) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRC");)
                             end
                             /* CSRRWI */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRWI) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRWI");)
                             end
                             /* CSRRSI */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRSI) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRSI");)
                             end
                             /* CSRRCI */
                             else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
                                       (instruction[14:12] == FUNC3_CSRRCI) ) begin
                                 /* NOP */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR CSRRCI");)
                             end
                             else begin 
                                 `debug($display("Unknown instruction! %x", instruction);)
                                 /* Unknown instruction */
-                                cpu_stage <= STAGE_INSTR_FETCH;
                             end
+
+                            cpu_stage <= (is_load_store_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_FETCH;
                         end
 
                         STAGE_INSTR_ACCESS: begin
@@ -640,7 +608,7 @@ module leiwand_rv32_core
                                 `debug($display("Unknown access instruction! %x", instruction);)
                                 /* Unknown instruction */
                             end
-
+                            is_load_store_instruction <= 0;
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
 
