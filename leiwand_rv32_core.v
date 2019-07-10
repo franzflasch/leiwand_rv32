@@ -219,6 +219,13 @@ module leiwand_rv32_core
 
                             case(bus_data_in[6:0])
 
+                                // /* R-type */
+                                // OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND: begin
+                                //     rs1[4:0] <= bus_data_in[19:15];
+                                //     rs2_shamt[4:0] <= bus_data_in[24:20];
+                                //     rd[4:0] <= bus_data_in[11:7];
+                                // end
+
                                 /* I-type */
                                 OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, 
                                 OP_JALR,
