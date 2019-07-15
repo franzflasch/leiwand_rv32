@@ -128,14 +128,14 @@ module leiwand_rv32_core_tb();
             $display("\n");
             $display("cycle: %d", i);
             $display("stage: %d", cpu_core.cpu_stage);
-            $display("pc: %x", cpu_core.pc-4);
+            $display("pc: %x", cpu_core.pc);
             $display("instr: %x", cpu_core.instruction);
 
             for(j = 0; j < 32; j++ ) begin
                 $display("x[%2d]: %x", j, cpu_core.x[j]);
             end
 
-            if(cpu_core.pc-4 == `SUCCESS_PC) begin 
+            if(cpu_core.pc == `SUCCESS_PC) begin 
                 $display("SUCCESS!");
                 $finish;
             end

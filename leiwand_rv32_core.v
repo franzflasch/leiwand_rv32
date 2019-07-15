@@ -41,6 +41,13 @@ module leiwand_rv32_core
     reg [(`MEM_WIDTH-1):0] pc;
     reg [(`MEM_WIDTH-1):0] instruction;
 
+    /* opcode registers */
+    reg [(`MEM_WIDTH-1):0] next_pc;
+    reg [4:0] rs1;
+    reg [4:0] rs2_shamt;
+    reg [4:0] rd;
+    reg [(`MEM_WIDTH-1):0] immediate;
+
     /* bus access variables */
     reg bus_read_write;
     reg bus_ready;
@@ -126,12 +133,6 @@ module leiwand_rv32_core
     parameter FUNC3_LBU = 3'b100;
     parameter FUNC3_LHU = 3'b101;
 
-    /* opcode registers 1 */
-    reg [4:0] rs1;
-    reg [4:0] rs2_shamt;
-    reg [4:0] rd;
-    reg [(`MEM_WIDTH-1):0] immediate;
-
     reg is_load_instruction;
 
     reg is_LUI;
@@ -182,6 +183,7 @@ module leiwand_rv32_core
 
             /* Initialize program counter */
             pc <= PC_START_VAL;
+            next_pc <= PC_START_VAL;
             instruction <= 0;
 
             /* zero out opcode registers */
@@ -209,7 +211,7 @@ module leiwand_rv32_core
                 case (cpu_stage)
 
                         STAGE_INSTR_FETCH: begin
-                            bus_addr <= pc;
+                            bus_addr <= next_pc;
                             bus_data_out <= 0;
                             bus_access <= 1;
                             bus_read_write <= 0;
@@ -219,14 +221,13 @@ module leiwand_rv32_core
                             // rs2_shamt <= 0;
                             // rd <= 0;
                             // immediate <= 0;
-
+                            pc <= next_pc;
+                            next_pc <= next_pc + 4;
                             cpu_stage <= STAGE_INSTR_DECODE;
                         end
 
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
-
-                            pc <= pc + 4;
 
                             rs1[4:0] <= bus_data_in[19:15];
                             rs2_shamt[4:0] <= bus_data_in[24:20];
@@ -293,7 +294,7 @@ module leiwand_rv32_core
                                 /* U-type */
                                 OP_LUI,
                                 OP_AUIPC: begin
-                                    immediate <= bus_data_in[31:12];
+                                    immediate <= { bus_data_in[31:12], 12'b000000000000};
                                 end
 
                                 /* J-type */
@@ -310,65 +311,65 @@ module leiwand_rv32_core
                         STAGE_INSTR_EXECUTE: begin
                             /* LUI */
                             if (is_LUI) begin
-                                x[rd] <= (immediate << 12);
+                                x[rd] <= immediate;
                                 `debug($display("INSTR LUI");)
                             end
                             /* AUIPC */
                             else if (is_AUIPC) begin
-                                x[rd] <= (pc - 4) + (immediate << 12);
+                                x[rd] <= pc + immediate;
                                 `debug($display("INSTR AUIPC");)
                             end
                             /* JAL */
                             else if (is_JAL) begin
-                                x[rd] <= pc;
-                                pc <= (pc - 4) + { {11{immediate[20]}}, immediate[20:0] };
+                                x[rd] <= next_pc;
+                                next_pc <= pc + { {11{immediate[20]}}, immediate[20:0] };
                                 `debug($display("INSTR JAL");)
                             end
                             /* JALR */
                             else if (is_JALR) begin
-                                x[rd] <= pc;
-                                pc <= ( {x[rs1][31:1], 1'b0} + { {20{immediate[11]}}, immediate[11:1], 1'b0 } );
+                                x[rd] <= next_pc;
+                                next_pc <= ( {x[rs1][31:1], 1'b0} + { {20{immediate[11]}}, immediate[11:1], 1'b0 } );
                                 `debug($display("INSTR JALR");)
                             end
                             /* BEQ */
                             else if (is_BEQ) begin
                                 if(x[rs1] == x[rs2_shamt]) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
                             else if (is_BNE) begin
                                 if(x[rs1] != x[rs2_shamt]) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BNE");)
                             end
                             /* BLT */
                             else if (is_BLT) begin
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLT");)
                             end
                             /* BGE */
                             else if (is_BGE) begin
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BGE");)
                             end
                             /* BLTU */
                             else if (is_BLTU) begin
                                 if(x[rs1] < x[rs2_shamt]) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLTU");)
                             end
                             /* BGEU */
                             else if (is_BGEU) begin
                                 if(x[rs1] >= x[rs2_shamt]) begin
-                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BGEU");)
                             end
@@ -511,7 +512,7 @@ module leiwand_rv32_core
                                     if(bus_data_in[31]) x[rd] <= (bus_data_in[31:24] | 32'hFFFFFF00);
                                     else x[rd] <= (bus_data_in[31:24]);
                                  end
-                                `debug($display("INSTR LB ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                                `debug($display("INSTR LB ACCESS %x %x %x", bus_addr, bus_data_in, pc );)
                             end
                             else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
                                  (instruction[14:12] == FUNC3_LH) ) begin
@@ -523,7 +524,7 @@ module leiwand_rv32_core
                                     if(bus_data_in[15]) x[rd] <= (bus_data_in[15:0] | 32'hFFFF0000);
                                     else x[rd] <= (bus_data_in[15:0]);
                                  end
-                                `debug($display("INSTR LH ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                                `debug($display("INSTR LH ACCESS %x %x %x", bus_addr, bus_data_in, pc );)
                             end
                             else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
                                  (instruction[14:12] == FUNC3_LW) ) begin
@@ -544,7 +545,7 @@ module leiwand_rv32_core
                                  else if(bus_addr[1:0] == 3) begin
                                     x[rd] <= (bus_data_in[31:24] & 32'h000000FF);
                                  end
-                                `debug($display("INSTR LBU ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                                `debug($display("INSTR LBU ACCESS %x %x %x", bus_addr, bus_data_in, pc );)
                             end
                             else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) && 
                                  (instruction[14:12] == FUNC3_LHU) ) begin
@@ -554,7 +555,7 @@ module leiwand_rv32_core
                                  else begin 
                                     x[rd] <= (bus_data_in[15:0]) & 32'h0000FFFF;
                                  end
-                                `debug($display("INSTR LHU ACCESS %x %x %x", bus_addr, bus_data_in, pc-4 );)
+                                `debug($display("INSTR LHU ACCESS %x %x %x", bus_addr, bus_data_in, pc );)
                             end
                             else begin 
                                 `debug($display("Unknown access instruction! %x", instruction);)
