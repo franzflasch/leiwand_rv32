@@ -333,42 +333,42 @@ module leiwand_rv32_core
                             /* BEQ */
                             else if (is_BEQ) begin
                                 if(x[rs1] == x[rs2_shamt]) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
                             else if (is_BNE) begin
                                 if(x[rs1] != x[rs2_shamt]) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BNE");)
                             end
                             /* BLT */
                             else if (is_BLT) begin
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLT");)
                             end
                             /* BGE */
                             else if (is_BGE) begin
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BGE");)
                             end
                             /* BLTU */
                             else if (is_BLTU) begin
                                 if(x[rs1] < x[rs2_shamt]) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLTU");)
                             end
                             /* BGEU */
                             else if (is_BGEU) begin
                                 if(x[rs1] >= x[rs2_shamt]) begin
-                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
+                                    pc <= ( (pc - 4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BGEU");)
                             end
