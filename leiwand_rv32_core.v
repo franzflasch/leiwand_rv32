@@ -30,9 +30,11 @@ module leiwand_rv32_core
     /* Currently 4 Stages (not pipelined) */
     parameter STAGE_INSTR_FETCH = 0;
     parameter STAGE_INSTR_DECODE = 1;
-    parameter STAGE_INSTR_EXECUTE = 2;
-    parameter STAGE_INSTR_ACCESS = 3;
-    reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_ACCESS):0] cpu_stage;
+    parameter STAGE_INSTR_ALU_PREPARE = 2;
+    parameter STAGE_INSTR_ALU_EXECUTE = 3;
+    parameter STAGE_INSTR_ACCESS = 4;
+    parameter STAGE_INSTR_WRITEBACK = 5;
+    reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
     parameter PC_START_VAL = `MEM_WIDTH'h20400000;
 
@@ -144,6 +146,17 @@ module leiwand_rv32_core
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
     reg is_FENCE, is_FENCEI;
 
+    /* ALU */
+    reg [(`MEM_WIDTH-1):0] alu_result_add;
+    reg [(`MEM_WIDTH-1):0] alu_op1;
+    reg [(`MEM_WIDTH-1):0] alu_op2;
+
+    reg [(`MEM_WIDTH-1):0] alu_branch_op1;
+    reg [(`MEM_WIDTH-1):0] alu_branch_op2;
+    reg [(`MEM_WIDTH-1):0] alu_branch_eq;
+    reg [(`MEM_WIDTH-1):0] alu_branch_ge;
+    reg [(`MEM_WIDTH-1):0] alu_branch_geu;
+
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -203,6 +216,9 @@ module leiwand_rv32_core
              is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU, 
              is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI, 
              is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND} <= 0;
+
+             {alu_result_add, alu_op1, alu_op2} <= 0;
+             {alu_branch_eq, alu_branch_ge, alu_branch_geu, alu_branch_op1, alu_branch_op2} <= 0;
         end
         else begin
 
@@ -293,81 +309,46 @@ module leiwand_rv32_core
                             endcase
 
                             instruction <= bus_data_in;
-                            cpu_stage <= STAGE_INSTR_EXECUTE;
+                            cpu_stage <= STAGE_INSTR_ALU_PREPARE;
                         end
 
-                        STAGE_INSTR_EXECUTE: begin
-                            /* LUI */
-                            if (is_LUI) begin
-                                x[rd] <= immediate;
-                                `debug($display("INSTR LUI");)
+                        STAGE_INSTR_ALU_PREPARE: begin
+                            if(is_LUI) begin
+                                alu_op1 <= 0;
+                                alu_op2 <= immediate;                                
                             end
-                            /* AUIPC */
-                            else if (is_AUIPC) begin
-                                x[rd] <= pc + immediate;
-                                `debug($display("INSTR AUIPC");)
+                            if(is_AUIPC || is_JAL) begin
+                                alu_op1 <= pc;
+                                alu_op2 <= immediate;
                             end
-                            /* JAL */
-                            else if (is_JAL) begin
-                                x[rd] <= next_pc;
-                                next_pc <= pc + immediate;
-                                `debug($display("INSTR JAL");)
+                            if(is_JALR) begin
+                                alu_op1 <= {x[rs1][31:1], 1'b0};
+                                alu_op2 <= { immediate[31:1], 1'b0 };
                             end
-                            /* JALR */
-                            else if (is_JALR) begin
-                                x[rd] <= next_pc;
-                                next_pc <= ( {x[rs1][31:1], 1'b0} + { immediate[31:1], 1'b0 } );
-                                `debug($display("INSTR JALR");)
+                            if(is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU) begin
+                                alu_branch_op1 <= x[rs1];
+                                alu_branch_op2 <= x[rs2_shamt];
+                                alu_op1 <= pc;
+                                alu_op2 <= immediate;
                             end
-                            /* BEQ */
-                            else if (is_BEQ) begin
-                                if(x[rs1] == x[rs2_shamt]) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BEQ");)
-                            end
-                            /* BNE */
-                            else if (is_BNE) begin
-                                if(x[rs1] != x[rs2_shamt]) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BNE");)
-                            end
-                            /* BLT */
-                            else if (is_BLT) begin
-                                if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BLT");)
-                            end
-                            /* BGE */
-                            else if (is_BGE) begin
-                                if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BGE");)
-                            end
-                            /* BLTU */
-                            else if (is_BLTU) begin
-                                if(x[rs1] < x[rs2_shamt]) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BLTU");)
-                            end
-                            /* BGEU */
-                            else if (is_BGEU) begin
-                                if(x[rs1] >= x[rs2_shamt]) begin
-                                    next_pc <= ( pc + immediate );
-                                end
-                                `debug($display("INSTR BGEU");)
-                            end
+
+                            cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
+                        end
+
+                        STAGE_INSTR_ALU_EXECUTE: begin
+
+                            alu_result_add <= alu_op1 + alu_op2;
+
+                            alu_branch_eq <= (alu_branch_op1 == alu_branch_op2);
+                            alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
+                            alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
+
                             /* LB *//* LH *//* LW *//* LBU *//* LHU */
-                            else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
+                            if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
                                 bus_addr <= ( $signed(x[rs1]) + $signed(immediate[11:0]) );
                                 bus_data_out <= 0;
                                 bus_access <= 1;
                                 bus_read_write <= 0;
-                                cpu_stage <= STAGE_INSTR_ACCESS;
                                 `debug($display("INSTR LB_LH_LW_LBU_LHU");)
                             end
                             /* SB */
@@ -474,7 +455,7 @@ module leiwand_rv32_core
                                 /* Unknown instruction */
                             end
 
-                            cpu_stage <= (is_load_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_FETCH;
+                            cpu_stage <= (is_load_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_ACCESS: begin
@@ -544,6 +525,23 @@ module leiwand_rv32_core
                             else begin 
                                 `debug($display("Unknown access instruction! %x", instruction);)
                                 /* Unknown instruction */
+                            end
+
+                            cpu_stage <= STAGE_INSTR_WRITEBACK;
+                        end
+
+                        STAGE_INSTR_WRITEBACK: begin
+
+                            if (is_LUI) x[rd] <= alu_result_add;
+                            if (is_AUIPC) x[rd] <= alu_result_add;
+                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_add; end
+                            if ( (is_BEQ && alu_branch_eq) || 
+                                 (is_BNE && !alu_branch_eq) || 
+                                 (is_BLT && !alu_branch_ge) ||
+                                 (is_BGE && alu_branch_ge) || 
+                                 (is_BLTU && !alu_branch_geu) ||
+                                 (is_BGEU && alu_branch_geu) ) begin
+                                next_pc <= alu_result_add; 
                             end
 
                             cpu_stage <= STAGE_INSTR_FETCH;
