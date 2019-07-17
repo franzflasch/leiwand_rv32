@@ -336,38 +336,42 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_ALU_PREPARE: begin
-                            if(is_LUI) begin
-                                alu_op1 <= 0;
-                                alu_op2 <= immediate;                                
+
+                            if(is_AUIPC | is_JAL |
+                               is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU) begin
+                               alu_op1 <= pc;
                             end
-                            if(is_AUIPC || is_JAL) begin
-                                alu_op1 <= pc;
-                                alu_op2 <= immediate;
+
+                            if(is_LUI | is_AUIPC | is_JAL | 
+                               is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU | 
+                               is_ADDI | is_SLTI | is_SLTIU | is_XORI | is_ORI | is_ANDI) begin
+                               alu_op2 <= immediate;
                             end
+
                             if(is_JALR) begin
                                 alu_op1 <= {x[rs1][31:1], 1'b0};
                                 alu_op2 <= { immediate[31:1], 1'b0 };
                             end
-                            if(is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU) begin
+
+                            if(is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU) begin
                                 alu_branch_op1 <= x[rs1];
                                 alu_branch_op2 <= x[rs2_shamt];
-                                alu_op1 <= pc;
-                                alu_op2 <= immediate;
                             end
-                            if(is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI) begin
+
+                            if(is_ADDI | is_SLTI | is_SLTIU | is_XORI | is_ORI | is_ANDI | is_SLLI | is_SRLI | is_SRAI | 
+                               is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND | is_SLL | is_SRL | is_SRA) begin
                                 alu_op1 <= x[rs1];
-                                alu_op2 <= immediate;
                             end
-                            if(is_SLLI || is_SRLI || is_SRAI) begin
-                                alu_op1 <= x[rs1];
-                                alu_op2 <= rs2_shamt[4:0];
+
+                            if(is_SLLI | is_SRLI | is_SRAI) begin
+                                alu_op2 <= rs2_shamt;
                             end
-                            if(is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND) begin
-                                alu_op1 <= x[rs1];
+
+                            if(is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND) begin
                                 alu_op2 <= x[rs2_shamt];
                             end
-                            if(is_SLL || is_SRL || is_SRA) begin
-                                alu_op1 <= x[rs1];
+
+                            if(is_SLL | is_SRL | is_SRA) begin
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
 
@@ -480,7 +484,7 @@ module leiwand_rv32_core
 
                         STAGE_INSTR_WRITEBACK: begin
 
-                            if (is_LUI) x[rd] <= alu_result_addu;
+                            if (is_LUI) x[rd] <= immediate;
                             if (is_AUIPC) x[rd] <= alu_result_addu;
                             if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
                             if ( (is_BEQ && alu_branch_eq) || 
