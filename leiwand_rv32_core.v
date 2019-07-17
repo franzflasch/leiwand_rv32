@@ -337,6 +337,9 @@ module leiwand_rv32_core
 
                         STAGE_INSTR_ALU_PREPARE: begin
 
+                            alu_branch_op1 <= x[rs1];
+                            alu_branch_op2 <= x[rs2_shamt];
+
                             if(is_AUIPC | is_JAL |
                                is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU) begin
                                alu_op1 <= pc;
@@ -351,11 +354,6 @@ module leiwand_rv32_core
                             if(is_JALR) begin
                                 alu_op1 <= {x[rs1][31:1], 1'b0};
                                 alu_op2 <= { immediate[31:1], 1'b0 };
-                            end
-
-                            if(is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU) begin
-                                alu_branch_op1 <= x[rs1];
-                                alu_branch_op2 <= x[rs2_shamt];
                             end
 
                             if(is_ADDI | is_SLTI | is_SLTIU | is_XORI | is_ORI | is_ANDI | is_SLLI | is_SRLI | is_SRAI | 
