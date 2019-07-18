@@ -24,7 +24,8 @@ module leiwand_rv32_core
         output o_stb,
         output o_cyc,
         output [(`MEM_WIDTH-1):0] o_addr,
-        output [(`MEM_WIDTH-1):0] o_data
+        output [(`MEM_WIDTH-1):0] o_data,
+        output [`HIGH_BIT_TO_FIT(4):0] o_data_wr_size
     );
 
     /* Currently 4 Stages (not pipelined) */
@@ -57,6 +58,7 @@ module leiwand_rv32_core
     reg [(`MEM_WIDTH-1):0] bus_data_out;
     reg [(`MEM_WIDTH-1):0] bus_data_in;
     reg [(`MEM_WIDTH-1):0] bus_addr;
+    reg [`HIGH_BIT_TO_FIT(4):0] bus_wr_size;
 
 
     /* RV32I Base instructions */
@@ -135,6 +137,11 @@ module leiwand_rv32_core
     parameter FUNC3_LBU = 3'b100;
     parameter FUNC3_LHU = 3'b101;
 
+    parameter OP_SB_SH_SW = 7'b0100011;
+    parameter FUNC3_SB = 3'b000;
+    parameter FUNC3_SH = 3'b001;
+    parameter FUNC3_SW = 3'b010;
+
     reg is_LUI;
     reg is_AUIPC;
     reg is_JAL;
@@ -143,6 +150,7 @@ module leiwand_rv32_core
     reg is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI;
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
     reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
+    reg is_SB, is_SH, is_SW;
 
     /* ALU */
     reg [(`MEM_WIDTH-1):0] alu_result_addu;
@@ -223,7 +231,8 @@ module leiwand_rv32_core
              is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU, 
              is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI, 
              is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND,
-             is_LB, is_LH, is_LW, is_LBU, is_LHU } <= 0;
+             is_LB, is_LH, is_LW, is_LBU, is_LHU,
+             is_SB, is_SH, is_SW } <= 0;
 
             {alu_result_addu, 
              alu_result_add, 
@@ -303,6 +312,9 @@ module leiwand_rv32_core
                             is_LBU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LBU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
                             is_LHU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LHU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
 
+                            is_SB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
+                            is_SH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
+                            is_SW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
 
                             case (bus_data_in[6:0])
 
@@ -313,6 +325,11 @@ module leiwand_rv32_core
                                 OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
                                 OP_LB_LH_LW_LBU_LHU: begin
                                     immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:20] };
+                                end
+
+                                /* S-type */
+                                OP_SB_SH_SW: begin
+                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:25], bus_data_in[11:7] };
                                 end
 
                                 /* B-type */
@@ -377,11 +394,26 @@ module leiwand_rv32_core
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
 
-                            if(is_LB | is_LH | is_LW | is_LBU | is_LHU) begin
+                            if(is_LB | is_LH | is_LW | is_LBU | is_LHU | 
+                               is_SB | is_SH | is_SW) begin
                                 bus_addr <= ( $signed(x[rs1]) + $signed(immediate) );
-                                bus_data_out <= 0;
+
+                                if (is_SB) begin
+                                    bus_data_out <= x[rs2_shamt][7:0];
+                                    bus_wr_size <= 1;
+                                end
+                                else if (is_SH) begin
+                                    bus_data_out <= x[rs2_shamt][15:0];
+                                    bus_wr_size <= 2;
+                                end
+                                else if (is_SW) begin
+                                    bus_data_out <= x[rs2_shamt];
+                                    bus_wr_size <= 4;
+                                end
+                                else bus_data_out <= 0;
+
+                                bus_read_write <= (is_SB | is_SH | is_SW) ? 1 : 0;
                                 bus_access <= 1;
-                                bus_read_write <= 0;
                                 cpu_stage <= STAGE_INSTR_ACCESS;
                             end
                             else cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
@@ -557,5 +589,6 @@ module leiwand_rv32_core
     assign o_cyc = cyc_out_reg;
     assign o_addr = address_out_reg;
     assign o_data = data_out_reg;
+    assign o_data_wr_size = bus_wr_size;
 
 endmodule

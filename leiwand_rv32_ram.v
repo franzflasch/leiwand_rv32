@@ -12,14 +12,15 @@ module leiwand_rv32_ram # (
     (
         input i_clk,
         input i_rst,
-        input [MEM_HIGH_BIT:0] i_addr,
+        input [(MEM_WIDTH-1):0] i_addr,
         input [(MEM_WIDTH-1):0] i_dat,
         output [(MEM_WIDTH-1):0] o_dat,
         input i_we,
         input i_stb,
         output o_ack,
         input i_cyc,
-        output o_stall
+        output o_stall,
+        input [`HIGH_BIT_TO_FIT(4):0] i_dat_wr_size
     );
 
     parameter STATE_INIT = 0;
@@ -34,6 +35,7 @@ module leiwand_rv32_ram # (
     reg [(MEM_WIDTH-1):0] mem[0:MEM_SIZE];
 
     reg [`HIGH_BIT_TO_FIT(STATE_FINISH):0] internal_state;
+    wire [MEM_HIGH_BIT:0] addr_index;
 
 `ifdef INIT_RAM_TOZERO
     reg [`HIGH_BIT_TO_FIT(MEM_SIZE-1):0] mem_index;
@@ -86,10 +88,25 @@ module leiwand_rv32_ram # (
                 end
                 STATE_FINISH: begin
                     if(i_we) begin
-                        mem[i_addr] <= i_dat;
+                        case (i_dat_wr_size)
+                            1: case (i_addr[1:0])
+                                0: mem[addr_index][7:0] <= i_dat[7:0];
+                                1: mem[addr_index][15:8] <= i_dat[7:0];
+                                2: mem[addr_index][23:16] <= i_dat[7:0];
+                                3: mem[addr_index][31:24] <= i_dat[7:0];
+                                default: mem[addr_index] <= 0;
+                            endcase
+                            2: case (i_addr[1])
+                                0: mem[addr_index][15:0] <= i_dat[15:0];
+                                1: mem[addr_index][31:16] <= i_dat[15:0];
+                                default: mem[addr_index] <= 0;
+                            endcase
+                            4: mem[addr_index][31:0] <= i_dat[31:0];
+                            default: mem[addr_index][31:0] <= i_dat[31:0];
+                        endcase
                     end
                     else begin
-                        data_out <= mem[i_addr];
+                        data_out <= mem[addr_index];
                     end
 
                     if(i_cyc && !i_stb) begin
@@ -107,5 +124,6 @@ module leiwand_rv32_ram # (
     assign o_ack = ack_out;
     /* the combination with | (tmp_stall & i_stb) saves one clock cycle */
     assign o_stall = stall_out | (tmp_stall & i_stb);
+    assign addr_index[MEM_HIGH_BIT:0] = i_addr[MEM_HIGH_BIT+2:2];
 
 endmodule
