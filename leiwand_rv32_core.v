@@ -331,6 +331,8 @@ module leiwand_rv32_core
                                     immediate <= { {11{bus_data_in[31]}}, bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
                                 end
 
+                                default: immediate <= 0;
+
                             endcase
 
                             instruction <= bus_data_in;
