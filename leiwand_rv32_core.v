@@ -471,33 +471,24 @@ module leiwand_rv32_core
                             if (is_LUI) x[rd] <= immediate;
                             if (is_AUIPC) x[rd] <= alu_result_addu;
                             if (is_JAL | is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
-                            if ( (is_BEQ && alu_branch_eq) || 
-                                 (is_BNE && !alu_branch_eq) || 
-                                 (is_BLT && !alu_branch_ge) ||
-                                 (is_BGE && alu_branch_ge) || 
-                                 (is_BLTU && !alu_branch_geu) ||
-                                 (is_BGEU && alu_branch_geu) ) begin
+                            if ( (is_BEQ & alu_branch_eq) | 
+                                 (is_BNE & !alu_branch_eq) | 
+                                 (is_BLT & !alu_branch_ge) |
+                                 (is_BGE & alu_branch_ge) | 
+                                 (is_BLTU & !alu_branch_geu) |
+                                 (is_BGEU & alu_branch_geu) ) begin
                                 next_pc <= alu_result_addu; 
                             end
-                            if(is_ADDI) begin x[rd] <= alu_result_add; end
-                            if(is_SLTI) begin x[rd] <= !alu_result_ge; end
-                            if(is_SLTIU) begin x[rd] <= !alu_result_geu; end
-                            if(is_XORI) begin x[rd] <= alu_result_xor; end
-                            if(is_ORI) begin x[rd] <= alu_result_or; end
-                            if(is_ANDI) begin x[rd] <= alu_result_and; end
-                            if(is_SLLI) begin x[rd] <= alu_result_sll; end
-                            if(is_SRLI) begin x[rd] <= alu_result_srl; end
-                            if(is_SRAI) begin x[rd] <= alu_result_sra; end
-                            if(is_ADD) begin x[rd] <= alu_result_add; end
+                            if(is_ADDI | is_ADD) begin x[rd] <= alu_result_add; end
+                            if(is_SLTI | is_SLT) begin x[rd] <= !alu_result_ge; end
+                            if(is_SLTIU | is_SLTU) begin x[rd] <= !alu_result_geu; end
+                            if(is_XORI | is_XOR) begin x[rd] <= alu_result_xor; end
+                            if(is_ORI | is_OR) begin x[rd] <= alu_result_or; end
+                            if(is_ANDI | is_AND) begin x[rd] <= alu_result_and; end
+                            if(is_SLLI | is_SLL) begin x[rd] <= alu_result_sll; end
+                            if(is_SRLI | is_SRL) begin x[rd] <= alu_result_srl; end
+                            if(is_SRAI | is_SRA) begin x[rd] <= alu_result_sra; end
                             if(is_SUB) begin x[rd] <= alu_result_sub; end
-                            if(is_SLL) begin x[rd] <= alu_result_sll; end
-                            if(is_SLT) begin x[rd] <= !alu_result_ge; end
-                            if(is_SLTU) begin x[rd] <= !alu_result_geu; end
-                            if(is_XOR) begin x[rd] <= alu_result_xor; end
-                            if(is_SRL) begin x[rd] <= alu_result_srl; end
-                            if(is_SRA) begin x[rd] <= alu_result_sra; end
-                            if(is_OR) begin x[rd] <= alu_result_or; end
-                            if(is_AND) begin x[rd] <= alu_result_and; end
 
                             if (is_LB) begin
                                 case (bus_addr[1:0])
