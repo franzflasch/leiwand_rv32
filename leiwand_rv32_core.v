@@ -34,7 +34,8 @@ module leiwand_rv32_core
     parameter STAGE_INSTR_DECODE = 1;
     parameter STAGE_INSTR_ALU_PREPARE = 2;
     parameter STAGE_INSTR_ALU_EXECUTE = 3;
-    parameter STAGE_INSTR_WRITEBACK = 4;
+    parameter STAGE_INSTR_ACCESS = 4;
+    parameter STAGE_INSTR_WRITEBACK = 5;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
     parameter PC_START_VAL = `MEM_WIDTH'h20400000;
@@ -156,7 +157,6 @@ module leiwand_rv32_core
     reg [(`MEM_WIDTH-1):0] alu_result_addu;
     reg [(`MEM_WIDTH-1):0] alu_result_add;
     reg [(`MEM_WIDTH-1):0] alu_result_sub;
-    reg alu_result_eq;
     reg alu_result_ge;
     reg alu_result_geu;
     reg [(`MEM_WIDTH-1):0] alu_result_xor;
@@ -388,24 +388,25 @@ module leiwand_rv32_core
                             alu_branch_op1 <= x[rs1];
                             alu_branch_op2 <= x[rs2_shamt];
 
-                            if(is_AUIPC || is_JAL |
+                            if(is_AUIPC || is_JAL ||
                                is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU) begin
                                alu_op1 <= pc;
                             end
 
                             if(is_LUI || is_AUIPC || is_JAL || 
                                is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU || 
-                               is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI) begin
+                               is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI ||
+                               is_LB || is_LH || is_LW || is_LBU || is_LHU || 
+                               is_SB || is_SH || is_SW || 
+                               is_JALR) begin
                                alu_op2 <= immediate;
                             end
 
-                            if(is_JALR) begin
-                                alu_op1 <= {x[rs1][31:1], 1'b0};
-                                alu_op2 <= { immediate[31:1], 1'b0 };
-                            end
-
                             if(is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI || is_SLLI || is_SRLI || is_SRAI || 
-                               is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND || is_SLL || is_SRL || is_SRA) begin
+                               is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND || is_SLL || is_SRL || is_SRA || 
+                               is_LB || is_LH || is_LW || is_LBU || is_LHU || 
+                               is_SB || is_SH || is_SW ||
+                               is_JALR) begin
                                 alu_op1 <= x[rs1];
                             end
 
@@ -421,28 +422,6 @@ module leiwand_rv32_core
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
 
-                            if(is_LB || is_LH || is_LW || is_LBU || is_LHU || 
-                               is_SB || is_SH || is_SW) begin
-                                bus_addr <= ( $signed(x[rs1]) + $signed(immediate) );
-
-                                if (is_SB) begin
-                                    bus_data_out <= x[rs2_shamt][7:0];
-                                    bus_wr_size <= 1;
-                                end
-                                else if (is_SH) begin
-                                    bus_data_out <= x[rs2_shamt][15:0];
-                                    bus_wr_size <= 2;
-                                end
-                                else if (is_SW) begin
-                                    bus_data_out <= x[rs2_shamt];
-                                    bus_wr_size <= 4;
-                                end
-                                else bus_data_out <= 0;
-
-                                bus_read_write <= (is_SB || is_SH || is_SW) ? 1 : 0;
-                                bus_access <= 1;
-                                cpu_stage <= STAGE_INSTR_WRITEBACK;
-                            end
                             cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
 
@@ -464,6 +443,20 @@ module leiwand_rv32_core
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
                             alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
 
+                            cpu_stage <= STAGE_INSTR_ACCESS;
+                        end
+
+                        STAGE_INSTR_ACCESS: begin
+                            if(is_LB || is_LH || is_LW || is_LBU || is_LHU || 
+                               is_SB || is_SH || is_SW) begin
+                                bus_addr <= alu_result_add;
+
+                                bus_data_out <= x[rs2_shamt];
+                                bus_wr_size <= {is_SW, is_SH, is_SB};
+                                bus_read_write <= (is_SB | is_SH | is_SW);
+
+                                bus_access <= 1;
+                            end
                             cpu_stage <= STAGE_INSTR_WRITEBACK;
                         end
 
@@ -480,6 +473,7 @@ module leiwand_rv32_core
                                  (is_BGEU && alu_branch_geu) ) begin
                                 next_pc <= alu_result_addu; 
                             end
+
                             if(is_ADDI || is_ADD) begin x[rd] <= alu_result_add; end
                             if(is_SLTI || is_SLT) begin x[rd] <= !alu_result_ge; end
                             if(is_SLTIU || is_SLTU) begin x[rd] <= !alu_result_geu; end
