@@ -31,6 +31,8 @@ module leiwand_rv32_core_tb();
     wire wb_stall_sram;
     wire wb_stall_rom;
 
+    wire debug_led;
+
     leiwand_rv32_core
         cpu_core (
             clk, 
@@ -44,7 +46,8 @@ module leiwand_rv32_core_tb();
             wb_cyc,
             wb_addr,
             wb_data_out,
-            data_write_size
+            data_write_size,
+            debug_led
     );
 
     leiwand_rv32_ram #(

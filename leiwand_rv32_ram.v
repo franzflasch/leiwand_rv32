@@ -48,13 +48,13 @@ module leiwand_rv32_ram # (
             tmp_stall <= 1;
             data_out <= 0;
 
-            mem[0] <= 32'h00018637;
-            mem[1] <= 32'h00158593;
-            mem[2] <= 32'h00c58463;
-            mem[3] <= 32'hff9ff06f;
-            mem[4] <= 32'h00000593;
-            mem[5] <= 32'h00154513;
-            mem[6] <= 32'hfedff06f;
+            // mem[0] <= 32'h00018637;
+            // mem[1] <= 32'h00158593;
+            // mem[2] <= 32'h00c58463;
+            // mem[3] <= 32'hff9ff06f;
+            // mem[4] <= 32'h00000593;
+            // mem[5] <= 32'h00154513;
+            // mem[6] <= 32'hfedff06f;
 
             // 0x00300613	addi x12 x0 3	li a2, 3
             // 0x00158593	addi x11 x11 1	addi a1, a1, 1
@@ -105,19 +105,19 @@ module leiwand_rv32_ram # (
                 STATE_FINISH: begin
                     if(i_we) begin
                         case (i_dat_wr_size)
-                            // 1: case (i_addr[1:0])
-                            //     0: mem[addr_index][7:0] <= i_dat[7:0];
-                            //     1: mem[addr_index][15:8] <= i_dat[7:0];
-                            //     2: mem[addr_index][23:16] <= i_dat[7:0];
-                            //     3: mem[addr_index][31:24] <= i_dat[7:0];
-                            //     default: mem[addr_index] <= 0;
-                            // endcase
-                            // 2: case (i_addr[1])
-                            //     0: mem[addr_index][15:0] <= i_dat[15:0];
-                            //     1: mem[addr_index][31:16] <= i_dat[15:0];
-                            //     default: mem[addr_index] <= 0;
-                            // endcase
-                            // 4: mem[addr_index][31:0] <= i_dat[31:0];
+                            1: case (i_addr[1:0])
+                                0: mem[addr_index][7:0] <= i_dat[7:0];
+                                1: mem[addr_index][15:8] <= i_dat[7:0];
+                                2: mem[addr_index][23:16] <= i_dat[7:0];
+                                3: mem[addr_index][31:24] <= i_dat[7:0];
+                                default: mem[addr_index] <= 0;
+                            endcase
+                            2: case (i_addr[1])
+                                0: mem[addr_index][15:0] <= i_dat[15:0];
+                                1: mem[addr_index][31:16] <= i_dat[15:0];
+                                default: mem[addr_index] <= 0;
+                            endcase
+                            4: mem[addr_index][31:0] <= i_dat[31:0];
                             default: mem[addr_index][31:0] <= i_dat[31:0];
                         endcase
                     end
