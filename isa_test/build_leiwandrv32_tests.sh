@@ -12,11 +12,11 @@ blt
 bge
 bltu
 bgeu
-lb
-lh
-lw
-lbu
-lhu
+# lb
+# lh
+# lw
+# lbu
+# lhu
 # #sb
 # #sh
 # #sw

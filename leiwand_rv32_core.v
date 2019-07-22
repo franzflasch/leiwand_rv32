@@ -25,7 +25,8 @@ module leiwand_rv32_core
         output o_cyc,
         output [(`MEM_WIDTH-1):0] o_addr,
         output [(`MEM_WIDTH-1):0] o_data,
-        output [`HIGH_BIT_TO_FIT(4):0] o_data_wr_size
+        output [`HIGH_BIT_TO_FIT(4):0] o_data_wr_size,
+        output debug_led
     );
 
     /* Currently 4 Stages (not pipelined) */
@@ -148,8 +149,8 @@ module leiwand_rv32_core
     reg is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU;
     reg is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI;
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
-    reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
-    reg is_SB, is_SH, is_SW;
+    // reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
+    // reg is_SB, is_SH, is_SW;
 
     /* ALU */
     reg [(`MEM_WIDTH-1):0] alu_result_addu;
@@ -332,15 +333,15 @@ module leiwand_rv32_core
                             is_OR <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_OR, FUNC3_OR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
                             is_AND <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_AND, FUNC3_AND, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
 
-                            is_LB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LB, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LH, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LW, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LBU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LBU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LHU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LHU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            // is_LB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LB, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            // is_LH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LH, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            // is_LW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LW, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            // is_LBU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LBU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            // is_LHU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LHU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
 
-                            is_SB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
-                            is_SH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
-                            is_SW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
+                            // is_SB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
+                            // is_SH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
+                            // is_SW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
 
                             case (bus_data_in[6:0])
 
@@ -387,14 +388,14 @@ module leiwand_rv32_core
                             alu_branch_op1 <= x[rs1];
                             alu_branch_op2 <= x[rs2_shamt];
 
-                            if(is_AUIPC | is_JAL |
-                               is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU) begin
+                            if(is_AUIPC || is_JAL |
+                               is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU) begin
                                alu_op1 <= pc;
                             end
 
-                            if(is_LUI | is_AUIPC | is_JAL | 
-                               is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU | 
-                               is_ADDI | is_SLTI | is_SLTIU | is_XORI | is_ORI | is_ANDI) begin
+                            if(is_LUI || is_AUIPC || is_JAL || 
+                               is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU || 
+                               is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI) begin
                                alu_op2 <= immediate;
                             end
 
@@ -403,46 +404,46 @@ module leiwand_rv32_core
                                 alu_op2 <= { immediate[31:1], 1'b0 };
                             end
 
-                            if(is_ADDI | is_SLTI | is_SLTIU | is_XORI | is_ORI | is_ANDI | is_SLLI | is_SRLI | is_SRAI | 
-                               is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND | is_SLL | is_SRL | is_SRA) begin
+                            if(is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI || is_SLLI || is_SRLI || is_SRAI || 
+                               is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND || is_SLL || is_SRL || is_SRA) begin
                                 alu_op1 <= x[rs1];
                             end
 
-                            if(is_SLLI | is_SRLI | is_SRAI) begin
+                            if(is_SLLI || is_SRLI || is_SRAI) begin
                                 alu_op2 <= rs2_shamt;
                             end
 
-                            if(is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND) begin
+                            if(is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND) begin
                                 alu_op2 <= x[rs2_shamt];
                             end
 
-                            if(is_SLL | is_SRL | is_SRA) begin
+                            if(is_SLL || is_SRL || is_SRA) begin
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
 
-                            if(is_LB | is_LH | is_LW | is_LBU | is_LHU | 
-                               is_SB | is_SH | is_SW) begin
-                                bus_addr <= ( $signed(x[rs1]) + $signed(immediate) );
+                            // if(is_LB || is_LH || is_LW || is_LBU || is_LHU || 
+                            //    is_SB || is_SH || is_SW) begin
+                            //     bus_addr <= ( $signed(x[rs1]) + $signed(immediate) );
 
-                                if (is_SB) begin
-                                    bus_data_out <= x[rs2_shamt][7:0];
-                                    bus_wr_size <= 1;
-                                end
-                                else if (is_SH) begin
-                                    bus_data_out <= x[rs2_shamt][15:0];
-                                    bus_wr_size <= 2;
-                                end
-                                else if (is_SW) begin
-                                    bus_data_out <= x[rs2_shamt];
-                                    bus_wr_size <= 4;
-                                end
-                                else bus_data_out <= 0;
+                            //     if (is_SB) begin
+                            //         bus_data_out <= x[rs2_shamt][7:0];
+                            //         bus_wr_size <= 1;
+                            //     end
+                            //     else if (is_SH) begin
+                            //         bus_data_out <= x[rs2_shamt][15:0];
+                            //         bus_wr_size <= 2;
+                            //     end
+                            //     else if (is_SW) begin
+                            //         bus_data_out <= x[rs2_shamt];
+                            //         bus_wr_size <= 4;
+                            //     end
+                            //     else bus_data_out <= 0;
 
-                                bus_read_write <= (is_SB | is_SH | is_SW) ? 1 : 0;
-                                bus_access <= 1;
-                                cpu_stage <= STAGE_INSTR_WRITEBACK;
-                            end
-                            else cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
+                            //     bus_read_write <= (is_SB || is_SH || is_SW) ? 1 : 0;
+                            //     bus_access <= 1;
+                            //     cpu_stage <= STAGE_INSTR_WRITEBACK;
+                            // end
+                            cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
 
                         STAGE_INSTR_ALU_EXECUTE: begin
@@ -470,53 +471,53 @@ module leiwand_rv32_core
 
                             if (is_LUI) x[rd] <= immediate;
                             if (is_AUIPC) x[rd] <= alu_result_addu;
-                            if (is_JAL | is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
-                            if ( (is_BEQ & alu_branch_eq) | 
-                                 (is_BNE & !alu_branch_eq) | 
-                                 (is_BLT & !alu_branch_ge) |
-                                 (is_BGE & alu_branch_ge) | 
-                                 (is_BLTU & !alu_branch_geu) |
-                                 (is_BGEU & alu_branch_geu) ) begin
+                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
+                            if ( (is_BEQ && alu_branch_eq) || 
+                                 (is_BNE && !alu_branch_eq) || 
+                                 (is_BLT && !alu_branch_ge) ||
+                                 (is_BGE && alu_branch_ge) || 
+                                 (is_BLTU && !alu_branch_geu) ||
+                                 (is_BGEU && alu_branch_geu) ) begin
                                 next_pc <= alu_result_addu; 
                             end
-                            if(is_ADDI | is_ADD) begin x[rd] <= alu_result_add; end
-                            if(is_SLTI | is_SLT) begin x[rd] <= !alu_result_ge; end
-                            if(is_SLTIU | is_SLTU) begin x[rd] <= !alu_result_geu; end
-                            if(is_XORI | is_XOR) begin x[rd] <= alu_result_xor; end
-                            if(is_ORI | is_OR) begin x[rd] <= alu_result_or; end
-                            if(is_ANDI | is_AND) begin x[rd] <= alu_result_and; end
-                            if(is_SLLI | is_SLL) begin x[rd] <= alu_result_sll; end
-                            if(is_SRLI | is_SRL) begin x[rd] <= alu_result_srl; end
-                            if(is_SRAI | is_SRA) begin x[rd] <= alu_result_sra; end
+                            if(is_ADDI || is_ADD) begin x[rd] <= alu_result_add; end
+                            if(is_SLTI || is_SLT) begin x[rd] <= !alu_result_ge; end
+                            if(is_SLTIU || is_SLTU) begin x[rd] <= !alu_result_geu; end
+                            if(is_XORI || is_XOR) begin x[rd] <= alu_result_xor; end
+                            if(is_ORI || is_OR) begin x[rd] <= alu_result_or; end
+                            if(is_ANDI || is_AND) begin x[rd] <= alu_result_and; end
+                            if(is_SLLI || is_SLL) begin x[rd] <= alu_result_sll; end
+                            if(is_SRLI || is_SRL) begin x[rd] <= alu_result_srl; end
+                            if(is_SRAI || is_SRA) begin x[rd] <= alu_result_sra; end
                             if(is_SUB) begin x[rd] <= alu_result_sub; end
 
-                            if (is_LB) begin
-                                case (bus_addr[1:0])
-                                    0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
-                                    1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
-                                    2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
-                                    3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
-                                    default: x[rd] <= 0;
-                                endcase
-                            end
-                            if (is_LH) begin
-                                x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
-                            end
-                            if (is_LW) begin
-                                x[rd] <= bus_data_in;
-                            end
-                            if (is_LBU) begin
-                                case (bus_addr[1:0])
-                                    0: x[rd] <= bus_data_in[7:0];
-                                    1: x[rd] <= bus_data_in[15:8];
-                                    2: x[rd] <= bus_data_in[23:16];
-                                    3: x[rd] <= bus_data_in[31:24];
-                                    default: x[rd] <= 0;
-                                endcase
-                            end
-                            if (is_LHU) begin
-                                x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
-                            end
+                            // if (is_LB) begin
+                            //     case (bus_addr[1:0])
+                            //         0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
+                            //         1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
+                            //         2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
+                            //         3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
+                            //         default: x[rd] <= 0;
+                            //     endcase
+                            // end
+                            // if (is_LH) begin
+                            //     x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
+                            // end
+                            // if (is_LW) begin
+                            //     x[rd] <= bus_data_in;
+                            // end
+                            // if (is_LBU) begin
+                            //     case (bus_addr[1:0])
+                            //         0: x[rd] <= bus_data_in[7:0];
+                            //         1: x[rd] <= bus_data_in[15:8];
+                            //         2: x[rd] <= bus_data_in[23:16];
+                            //         3: x[rd] <= bus_data_in[31:24];
+                            //         default: x[rd] <= 0;
+                            //     endcase
+                            // end
+                            // if (is_LHU) begin
+                            //     x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
+                            // end
 
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
@@ -535,6 +536,7 @@ module leiwand_rv32_core
         end
     end
 
+    assign debug_led = x[10][0];
     assign o_we = we_out_reg;
     assign o_stb = stb_out_reg;
     assign o_cyc = cyc_out_reg;
