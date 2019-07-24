@@ -6,8 +6,7 @@
 
 module leiwand_rv32_ram # (
         parameter MEM_WIDTH = 32,
-        parameter MEM_SIZE = 32,
-        parameter MEM_HIGH_BIT = `HIGH_BIT_TO_FIT(MEM_SIZE-1)
+        parameter MEM_SIZE = 32
     )
     (
         input i_clk,
@@ -23,9 +22,11 @@ module leiwand_rv32_ram # (
         input [`HIGH_BIT_TO_FIT(4):0] i_dat_wr_size
     );
 
-    parameter STATE_INIT = 0;
-    parameter STATE_IDLE = 1;
-    parameter STATE_FINISH = 2;
+    localparam MEM_HIGH_BIT = `HIGH_BIT_TO_FIT(MEM_SIZE-1);
+
+    localparam STATE_INIT = 0;
+    localparam STATE_IDLE = 1;
+    localparam STATE_FINISH = 2;
     
     reg [(MEM_WIDTH-1):0] data_out;
     reg ack_out;
@@ -106,16 +107,14 @@ module leiwand_rv32_ram # (
                     if(i_we) begin
                         case (i_dat_wr_size)
                             1: case (i_addr[1:0])
-                                0: mem[addr_index][7:0] <= i_dat[7:0];
                                 1: mem[addr_index][15:8] <= i_dat[7:0];
                                 2: mem[addr_index][23:16] <= i_dat[7:0];
                                 3: mem[addr_index][31:24] <= i_dat[7:0];
-                                default: mem[addr_index] <= 0;
+                                default: mem[addr_index][7:0] <= i_dat[7:0];
                             endcase
                             2: case (i_addr[1])
-                                0: mem[addr_index][15:0] <= i_dat[15:0];
                                 1: mem[addr_index][31:16] <= i_dat[15:0];
-                                default: mem[addr_index] <= 0;
+                                default: mem[addr_index][15:0] <= i_dat[15:0];
                             endcase
                             default: mem[addr_index][31:0] <= i_dat[31:0];
                         endcase
@@ -131,6 +130,9 @@ module leiwand_rv32_ram # (
                         internal_state <= STATE_IDLE;
                     end
                 end
+                
+                default: internal_state <= STATE_IDLE;
+
             endcase
         end
     end

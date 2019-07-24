@@ -30,15 +30,15 @@ module leiwand_rv32_core
     );
 
     /* Currently 4 Stages (not pipelined) */
-    parameter STAGE_INSTR_FETCH = 0;
-    parameter STAGE_INSTR_DECODE = 1;
-    parameter STAGE_INSTR_ALU_PREPARE = 2;
-    parameter STAGE_INSTR_ALU_EXECUTE = 3;
-    parameter STAGE_INSTR_ACCESS = 4;
-    parameter STAGE_INSTR_WRITEBACK = 5;
+    localparam STAGE_INSTR_FETCH = 0;
+    localparam STAGE_INSTR_DECODE = 1;
+    localparam STAGE_INSTR_ALU_PREPARE = 2;
+    localparam STAGE_INSTR_ALU_EXECUTE = 3;
+    localparam STAGE_INSTR_ACCESS = 4;
+    localparam STAGE_INSTR_WRITEBACK = 5;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
-    parameter PC_START_VAL = `MEM_WIDTH'h20400000;
+    localparam PC_START_VAL = `MEM_WIDTH'h20400000;
 
     /* RISC-V Registers x0-x31 */
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
@@ -63,85 +63,69 @@ module leiwand_rv32_core
 
 
     /* RV32I Base instructions */
-    parameter OP_LUI = 7'b0110111;
-    parameter OP_AUIPC = 7'b0010111;
+    localparam OP_LUI = 7'b0110111;
+    localparam OP_AUIPC = 7'b0010111;
 
-    parameter OP_JAL = 7'b1101111;
+    localparam OP_JAL = 7'b1101111;
 
-    parameter OP_JALR = 7'b1100111;
-    parameter FUNC3_JALR = 3'b000;
+    localparam OP_JALR = 7'b1100111;
+    localparam FUNC3_JALR = 3'b000;
 
-    parameter OP_BEQ_BNE_BLT_BGE_BLTU_BGEU = 7'b1100011;
-    parameter FUNC3_BEQ = 3'b000;
-    parameter FUNC3_BNE = 3'b001;
-    parameter FUNC3_BLT = 3'b100;
-    parameter FUNC3_BGE = 3'b101;
-    parameter FUNC3_BLTU = 3'b110;
-    parameter FUNC3_BGEU = 3'b111;
+    localparam OP_BEQ_BNE_BLT_BGE_BLTU_BGEU = 7'b1100011;
+    localparam FUNC3_BEQ = 3'b000;
+    localparam FUNC3_BNE = 3'b001;
+    localparam FUNC3_BLT = 3'b100;
+    localparam FUNC3_BGE = 3'b101;
+    localparam FUNC3_BLTU = 3'b110;
+    localparam FUNC3_BGEU = 3'b111;
 
-    parameter OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI = 7'b0010011;
-    parameter FUNC3_ADDI = 3'b000;
-    parameter FUNC3_SLTI = 3'b010;
-    parameter FUNC3_SLTIU = 3'b011;
-    parameter FUNC3_XORI = 3'b100;
-    parameter FUNC3_ORI = 3'b110;
-    parameter FUNC3_ANDI = 3'b111;
-    parameter FUNC3_SLLI = 3'b001;
-    parameter FUNC7_SLLI = 7'b0000000;
-    parameter FUNC3_SRLI = 3'b101;
-    parameter FUNC7_SRLI = 7'b0000000;
-    parameter FUNC3_SRAI = 3'b101;
-    parameter FUNC7_SRAI = 7'b0100000;
+    localparam OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI = 7'b0010011;
+    localparam FUNC3_ADDI = 3'b000;
+    localparam FUNC3_SLTI = 3'b010;
+    localparam FUNC3_SLTIU = 3'b011;
+    localparam FUNC3_XORI = 3'b100;
+    localparam FUNC3_ORI = 3'b110;
+    localparam FUNC3_ANDI = 3'b111;
+    localparam FUNC3_SLLI = 3'b001;
+    localparam FUNC7_SLLI = 7'b0000000;
+    localparam FUNC3_SRLI = 3'b101;
+    localparam FUNC7_SRLI = 7'b0000000;
+    localparam FUNC3_SRAI = 3'b101;
+    localparam FUNC7_SRAI = 7'b0100000;
 
-    parameter OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND = 7'b0110011;
-    parameter FUNC3_ADD = 3'b000;
-    parameter FUNC7_ADD = 7'b0000000;
-    parameter FUNC3_SUB = 3'b000;
-    parameter FUNC7_SUB = 7'b0100000;
-    parameter FUNC3_SLL = 3'b001;
-    parameter FUNC7_SLL = 7'b0000000;
-    parameter FUNC3_SLT = 3'b010;
-    parameter FUNC7_SLT = 7'b0000000;
-    parameter FUNC3_SLTU = 3'b011;
-    parameter FUNC7_SLTU = 7'b0000000;
-    parameter FUNC3_XOR = 3'b100;
-    parameter FUNC7_XOR = 7'b0000000;
-    parameter FUNC3_SRL = 3'b101;
-    parameter FUNC7_SRL = 7'b0000000;
-    parameter FUNC3_SRA = 3'b101;
-    parameter FUNC7_SRA = 7'b0100000;
-    parameter FUNC3_OR = 3'b110;
-    parameter FUNC7_OR = 7'b0000000;
-    parameter FUNC3_AND = 3'b111;
-    parameter FUNC7_AND = 7'b0000000;
+    localparam OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND = 7'b0110011;
+    localparam FUNC3_ADD = 3'b000;
+    localparam FUNC7_ADD = 7'b0000000;
+    localparam FUNC3_SUB = 3'b000;
+    localparam FUNC7_SUB = 7'b0100000;
+    localparam FUNC3_SLL = 3'b001;
+    localparam FUNC7_SLL = 7'b0000000;
+    localparam FUNC3_SLT = 3'b010;
+    localparam FUNC7_SLT = 7'b0000000;
+    localparam FUNC3_SLTU = 3'b011;
+    localparam FUNC7_SLTU = 7'b0000000;
+    localparam FUNC3_XOR = 3'b100;
+    localparam FUNC7_XOR = 7'b0000000;
+    localparam FUNC3_SRL = 3'b101;
+    localparam FUNC7_SRL = 7'b0000000;
+    localparam FUNC3_SRA = 3'b101;
+    localparam FUNC7_SRA = 7'b0100000;
+    localparam FUNC3_OR = 3'b110;
+    localparam FUNC7_OR = 7'b0000000;
+    localparam FUNC3_AND = 3'b111;
+    localparam FUNC7_AND = 7'b0000000;
 
-    parameter OP_FENCE_FENCEI = 7'b0001111;
-    parameter FUNC3_FENCE =  3'b000;
-    parameter FUNC3_FENCEI = 3'b001;
+    localparam OP_LB_LH_LW_LBU_LHU = 7'b0000011;
+    localparam FUNC3_LB = 3'b000;
+    localparam FUNC3_LH = 3'b001;
+    localparam FUNC3_LW = 3'b010;
+    localparam FUNC3_LBU = 3'b100;
+    localparam FUNC3_LHU = 3'b101;
 
-    parameter OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI = 7'b1110011;
-    parameter FUNC3_ECALL = 3'b000;
-    parameter IMM11_ECALL = 12'b000000000000;
-    parameter FUNC3_EBREAK = 3'b000;
-    parameter IMM11_EBREAK = 12'b000000000001;
-    parameter FUNC3_CSRRW = 3'b001;
-    parameter FUNC3_CSRRS = 3'b010;
-    parameter FUNC3_CSRRC = 3'b011;
-    parameter FUNC3_CSRRWI = 3'b101;
-    parameter FUNC3_CSRRSI = 3'b110;
-    parameter FUNC3_CSRRCI = 3'b111;
-
-    parameter OP_LB_LH_LW_LBU_LHU = 7'b0000011;
-    parameter FUNC3_LB = 3'b000;
-    parameter FUNC3_LH = 3'b001;
-    parameter FUNC3_LW = 3'b010;
-    parameter FUNC3_LBU = 3'b100;
-    parameter FUNC3_LHU = 3'b101;
-
-    parameter OP_SB_SH_SW = 7'b0100011;
-    parameter FUNC3_SB = 3'b000;
-    parameter FUNC3_SH = 3'b001;
-    parameter FUNC3_SW = 3'b010;
+    localparam OP_SB_SH_SW = 7'b0100011;
+    localparam FUNC3_SB = 3'b000;
+    localparam FUNC3_SH = 3'b001;
+    localparam FUNC3_SW = 3'b010;
 
     reg is_LUI;
     reg is_AUIPC;
@@ -154,17 +138,15 @@ module leiwand_rv32_core
     reg is_SB, is_SH, is_SW;
 
     /* ALU */
-    reg [(`MEM_WIDTH-1):0] alu_result_addu;
-    reg [(`MEM_WIDTH-1):0] alu_result_add;
-    reg [(`MEM_WIDTH-1):0] alu_result_sub;
-    reg alu_result_ge;
-    reg alu_result_geu;
+    reg [(`MEM_WIDTH-1):0] alu_result_slt;
+    reg [(`MEM_WIDTH-1):0] alu_result_sltu;
     reg [(`MEM_WIDTH-1):0] alu_result_xor;
     reg [(`MEM_WIDTH-1):0] alu_result_or;
     reg [(`MEM_WIDTH-1):0] alu_result_and;
-    reg [(`MEM_WIDTH-1):0] alu_result_sll;
-    reg [(`MEM_WIDTH-1):0] alu_result_srl;
-    reg [(`MEM_WIDTH-1):0] alu_result_sra;
+    reg [(`MEM_WIDTH-1):0] alu_result_sl;
+    reg [(`MEM_WIDTH-1):0] alu_result_sr;
+    reg [(`MEM_WIDTH-1):0] alu_result_sub;
+    reg [(`MEM_WIDTH-1):0] alu_result_add;
     reg [(`MEM_WIDTH-1):0] alu_op1;
     reg [(`MEM_WIDTH-1):0] alu_op2;
 
@@ -345,15 +327,6 @@ module leiwand_rv32_core
 
                             case (bus_data_in[6:0])
 
-                                /* I-type */
-                                OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, 
-                                OP_JALR,
-                                OP_FENCE_FENCEI,
-                                OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
-                                OP_LB_LH_LW_LBU_LHU: begin
-                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:20] };
-                                end
-
                                 /* S-type */
                                 OP_SB_SH_SW: begin
                                     immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:25], bus_data_in[11:7] };
@@ -367,7 +340,7 @@ module leiwand_rv32_core
                                 /* U-type */
                                 OP_LUI,
                                 OP_AUIPC: begin
-                                    immediate <= { bus_data_in[31:12], 12'b000000000000};
+                                    immediate <= { bus_data_in[31:12], 12'b0};
                                 end
 
                                 /* J-type */
@@ -375,7 +348,8 @@ module leiwand_rv32_core
                                     immediate <= { {11{bus_data_in[31]}}, bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
                                 end
 
-                                default: immediate <= 0;
+                                /* I-type */
+                                default: immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:20] };
 
                             endcase
 
@@ -398,11 +372,8 @@ module leiwand_rv32_core
                             if(is_alu_shift_immediate) begin
                                 alu_op2 <= rs2_shamt;
                             end
-                            else if(is_alu_logic) begin
+                            else if(is_alu_logic || is_alu_shift) begin
                                 alu_op2 <= x[rs2_shamt];
-                            end
-                            else if(is_alu_shift) begin
-                                alu_op2 <= x[rs2_shamt][4:0];
                             end
                             else alu_op2 <= immediate;
 
@@ -411,59 +382,53 @@ module leiwand_rv32_core
 
                         STAGE_INSTR_ALU_EXECUTE: begin
 
-                            alu_result_addu <= alu_op1 + alu_op2;
-                            alu_result_add <= $signed(alu_op1) + $signed(alu_op2);
-                            alu_result_sub <= alu_op1 - alu_op2;
-                            alu_result_ge <= $signed(alu_op1) >= $signed(alu_op2);
-                            alu_result_geu <= alu_op1 >= alu_op2;
+                            alu_result_slt <= $signed(alu_op1) < $signed(alu_op2);
+                            alu_result_sltu <= alu_op1 < alu_op2;
                             alu_result_xor <= alu_op1 ^ alu_op2;
                             alu_result_or <= alu_op1 | alu_op2;
                             alu_result_and <= alu_op1 & alu_op2;
-                            alu_result_sll <= alu_op1 << alu_op2;
-                            alu_result_srl <= alu_op1 >> alu_op2;
-                            alu_result_sra <= $signed(alu_op1) >>> alu_op2;
+                            alu_result_sl <= alu_op1 << alu_op2[4:0];
+                            alu_result_sr <= $signed({is_SRA || is_SRAI ? alu_op1[31] : 1'b0, alu_op1}) >>> alu_op2[4:0];
+                            alu_result_sub <= alu_op1 - alu_op2;
+                            alu_result_add <= alu_op1 + alu_op2;
 
                             alu_branch_eq <= (alu_branch_op1 == alu_branch_op2);
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
                             alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
 
-                            cpu_stage <= STAGE_INSTR_ACCESS;
+                            cpu_stage <= is_load_store ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_ACCESS: begin
-                            if(is_load_store) begin
-                                bus_addr <= alu_result_add;
+                            bus_addr <= alu_result;
 
-                                bus_data_out <= x[rs2_shamt];
-                                bus_wr_size <= {is_SW, is_SH, is_SB};
-                                bus_read_write <= (is_SB | is_SH | is_SW);
+                            bus_data_out <= x[rs2_shamt];
+                            bus_wr_size <= {is_SW, is_SH, is_SB};
+                            bus_read_write <= (is_SB | is_SH | is_SW);
 
-                                bus_access <= 1;
-                            end
-                            cpu_stage <= STAGE_INSTR_WRITEBACK;
+                            bus_access <= 1;
+                            
+                            cpu_stage <= (is_SB | is_SH | is_SW) ?  cpu_stage <= STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_WRITEBACK: begin
 
                             if (is_LUI) x[rd] <= immediate;
-                            else if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
-                            else if (is_branch_op) begin
-                                if ( (is_BEQ && alu_branch_eq) || 
-                                    (is_BNE && !alu_branch_eq) || 
-                                    (is_BLT && !alu_branch_ge) ||
-                                    (is_BGE && alu_branch_ge) || 
-                                    (is_BLTU && !alu_branch_geu) ||
-                                    (is_BGEU && alu_branch_geu) ) begin
-                                    next_pc <= alu_result_addu; 
+                            else if(is_branch_op) begin
+                                if(take_branch) begin 
+                                    next_pc <= alu_result; 
                                 end
+                            end
+                            else if (is_JAL || is_JALR) begin 
+                                x[rd] <= next_pc; 
+                                next_pc <= alu_result; 
                             end
                             else if (is_LB) begin
                                 case (bus_addr[1:0])
-                                    0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
                                     1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
                                     2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
                                     3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
-                                    default: x[rd] <= 0;
+                                    default: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
                                 endcase
                             end
                             else if (is_LH) begin
@@ -474,11 +439,10 @@ module leiwand_rv32_core
                             end
                             else if (is_LBU) begin
                                 case (bus_addr[1:0])
-                                    0: x[rd] <= bus_data_in[7:0];
                                     1: x[rd] <= bus_data_in[15:8];
                                     2: x[rd] <= bus_data_in[23:16];
                                     3: x[rd] <= bus_data_in[31:24];
-                                    default: x[rd] <= 0;
+                                    default: x[rd] <= bus_data_in[7:0];
                                 endcase
                             end
                             else if (is_LHU) begin
@@ -509,6 +473,14 @@ module leiwand_rv32_core
     wire is_branch_op;
     assign is_branch_op = (is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU);
 
+    wire take_branch;
+    assign take_branch = ( (is_BEQ && alu_branch_eq) || 
+                           (is_BNE && !alu_branch_eq) || 
+                           (is_BLT && !alu_branch_ge) ||
+                           (is_BGE && alu_branch_ge) || 
+                           (is_BLTU && !alu_branch_geu) ||
+                           (is_BGEU && alu_branch_geu) );
+
     wire is_alu_shift_immediate;
     assign is_alu_shift_immediate = (is_SLLI | is_SRLI | is_SRAI);
 
@@ -521,41 +493,34 @@ module leiwand_rv32_core
     wire is_load_store;
     assign is_load_store = (is_LB | is_LH | is_LW | is_LBU | is_LHU | is_SB | is_SH | is_SW);
 
-
-    wire alu_is_add_op;
     wire alu_is_slt_op;
     wire alu_is_sltu_op;
     wire alu_is_xor_op;
     wire alu_is_or_op;
     wire alu_is_and_op;
-    wire alu_is_sll_op;
-    wire alu_is_srl_op;
-    wire alu_is_sra_op;
+    wire alu_is_sl_op;
+    wire alu_is_sr_op;
     wire alu_is_sub_op;
     wire [(`MEM_WIDTH-1):0] alu_result;
 
-    assign alu_is_add_op = (is_ADD | is_ADDI);
+    assign alu_result = ( alu_is_slt_op ? alu_result_slt :
+                          alu_is_sltu_op ? alu_result_sltu :
+                          alu_is_xor_op ? alu_result_xor :
+                          alu_is_or_op ? alu_result_or :
+                          alu_is_and_op ? alu_result_and :
+                          alu_is_sl_op ? alu_result_sl :
+                          alu_is_sr_op ? alu_result_sr :
+                          alu_is_sub_op ? alu_result_sub :
+                          alu_result_add );
+
     assign alu_is_slt_op = (is_SLT | is_SLTI);
     assign alu_is_sltu_op = (is_SLTU | is_SLTIU);
     assign alu_is_xor_op = (is_XOR | is_XORI);
     assign alu_is_or_op = (is_OR | is_ORI);
     assign alu_is_and_op = (is_AND | is_ANDI);
-    assign alu_is_sll_op = (is_SLL | is_SLLI);
-    assign alu_is_srl_op = (is_SRL | is_SRLI);
-    assign alu_is_sra_op = (is_SRA | is_SRAI);
+    assign alu_is_sl_op = (is_SLL | is_SLLI);
+    assign alu_is_sr_op = (is_SRA | is_SRAI | is_SRL | is_SRLI);
     assign alu_is_sub_op = (is_SUB);
-
-    assign alu_result = ( alu_is_add_op ? alu_result_add : 
-                          alu_is_slt_op ? !alu_result_ge : 
-                          alu_is_sltu_op ? !alu_result_geu :
-                          alu_is_xor_op ? alu_result_xor :
-                          alu_is_or_op ? alu_result_or :
-                          alu_is_and_op ? alu_result_and :
-                          alu_is_sll_op ? alu_result_sll :
-                          alu_is_srl_op ? alu_result_srl :
-                          alu_is_sra_op ? alu_result_sra :
-                          alu_is_sub_op ? alu_result_sub :
-                          alu_result_addu );
 
     assign debug_led = x[10][0];
     assign o_we = we_out_reg;
