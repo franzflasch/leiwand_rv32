@@ -16,16 +16,14 @@ module leiwand_rv32_core
         input i_clk,
         input i_rst,
 
-        /* wb signals */
-        input i_ack,
-        input [(`MEM_WIDTH-1):0] i_data,
-        input i_stall,
-        output o_we,
-        output o_stb,
-        output o_cyc,
-        output [(`MEM_WIDTH-1):0] o_addr,
-        output [(`MEM_WIDTH-1):0] o_data,
-        output [`HIGH_BIT_TO_FIT(4):0] o_data_wr_size,
+        /* MEMORY INTERFACE */
+        output o_mem_valid,
+        input i_mem_ready,
+        output [(`MEM_WIDTH-1):0] o_mem_addr,
+        input [(`MEM_WIDTH-1):0] i_mem_data,
+        output [(`MEM_WIDTH-1):0] o_mem_data,
+        output [3:0] o_mem_wen,
+
         output debug_led
     );
 
@@ -52,15 +50,13 @@ module leiwand_rv32_core
     reg [4:0] rd;
     reg [(`MEM_WIDTH-1):0] immediate;
 
-    /* bus access variables */
-    reg bus_read_write;
-    reg bus_ready;
-    reg bus_access;
-    reg [(`MEM_WIDTH-1):0] bus_data_out;
-    reg [(`MEM_WIDTH-1):0] bus_data_in;
-    reg [(`MEM_WIDTH-1):0] bus_addr;
-    reg [`HIGH_BIT_TO_FIT(4):0] bus_wr_size;
-
+    /* bus signals */
+    reg mem_valid;
+    reg [(`MEM_WIDTH-1):0] mem_addr_out;
+    reg [(`MEM_WIDTH-1):0] mem_data_in;
+    reg [(`MEM_WIDTH-1):0] mem_data_out;
+    reg [4:0] mem_wen;
+    reg mem_access;
 
     /* RV32I Base instructions */
     localparam OP_LUI = 7'b0110111;
@@ -156,15 +152,6 @@ module leiwand_rv32_core
     reg alu_branch_ge;
     reg alu_branch_geu;
 
-    /* WB Bus Handling */
-    /* WB master signals */
-    reg we_out_reg;
-    reg stb_out_reg;
-    reg cyc_out_reg;
-    reg [(`MEM_WIDTH-1):0] address_out_reg;
-    reg [(`MEM_WIDTH-1):0] data_out_reg;
-
-
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -210,65 +197,30 @@ module leiwand_rv32_core
             /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
 
-            bus_access <= 0;
-            bus_ready <= 0;
-            bus_data_out <= 0;
-            bus_data_in <= 0;
-            bus_read_write <= 0;
-            bus_addr <= 0;
+            mem_addr_out <= 0;
+            mem_data_out <= 0;
+            mem_valid <= 0;
+            mem_wen <= 0;
 
-            /* initialize wb master signals */
-            we_out_reg <= 0;
-            cyc_out_reg <= 0;
-            address_out_reg <= 0; //`MEM_WIDTH'h20000004;
-            data_out_reg <= 0;
-            stb_out_reg <= 0;
+            mem_access <= 0;
         end
         else begin
 
-            /* initialization */
-            if(!i_stall && !cyc_out_reg && !bus_access) begin
-                bus_ready <= 1;
+            /* New data ready */
+            if(i_mem_ready && mem_valid) begin
+                mem_data_in <= i_mem_data;
+                mem_access <= 0;
+                mem_valid <= 0;
             end
 
-            /* Begin access */
-            if(bus_ready && bus_access) begin
-                address_out_reg <= bus_addr;
-                we_out_reg <= bus_read_write;
-                stb_out_reg <= 1;
-
-                if(bus_read_write) begin
-                    data_out_reg <= bus_data_out;
-                end
-
-                cyc_out_reg <= 1;
-                bus_ready <= 0;
-            end
-
-            /* Wait for slave ack */
-            if(bus_access && !bus_ready) begin
-                stb_out_reg <= 0;
-            end
-
-            if(i_ack && !i_stall) begin
-                bus_data_in <= i_data;
-                address_out_reg <= 0;
-                we_out_reg <= 0;
-                data_out_reg <= 0;
-                cyc_out_reg <= 0;
-                bus_access <= 0;
-            end
-
-
-            if (bus_ready && !bus_access) begin
+            if (!mem_access) begin
 
                 case (cpu_stage)
 
                         STAGE_INSTR_FETCH: begin
-                            bus_addr <= next_pc;
-                            bus_data_out <= 0;
-                            bus_access <= 1;
-                            bus_read_write <= 0;
+                            mem_addr_out <= next_pc;
+                            mem_access <= 1;
+                            mem_valid <= 1;
 
                             pc <= next_pc;
                             next_pc <= next_pc + 4;
@@ -278,82 +230,82 @@ module leiwand_rv32_core
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
 
-                            rs1[4:0] <= bus_data_in[19:15];
-                            rs2_shamt[4:0] <= bus_data_in[24:20];
-                            rd[4:0] <= bus_data_in[11:7];
+                            rs1[4:0] <= mem_data_in[19:15];
+                            rs2_shamt[4:0] <= mem_data_in[24:20];
+                            rd[4:0] <= mem_data_in[11:7];
 
-                            is_LUI <= (bus_data_in[6:0] == OP_LUI) ? 1 : 0;
-                            is_AUIPC <= (bus_data_in[6:0] == OP_AUIPC) ? 1 : 0;
-                            is_JAL <= (bus_data_in[6:0] == OP_JAL) ? 1 : 0;
-                            is_JALR <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_JALR, OP_JALR} ) ? 1 : 0;
+                            is_LUI <= (mem_data_in[6:0] == OP_LUI) ? 1 : 0;
+                            is_AUIPC <= (mem_data_in[6:0] == OP_AUIPC) ? 1 : 0;
+                            is_JAL <= (mem_data_in[6:0] == OP_JAL) ? 1 : 0;
+                            is_JALR <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_JALR, OP_JALR} ) ? 1 : 0;
 
-                            is_BEQ <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BEQ, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
-                            is_BNE <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BNE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
-                            is_BLT <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BLT, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
-                            is_BGE <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BGE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
-                            is_BLTU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BLTU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
-                            is_BGEU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BGEU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BEQ <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BEQ, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BNE <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BNE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BLT <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BLT, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BGE <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BGE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BLTU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BLTU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BGEU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_BGEU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
 
-                            is_ADDI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ADDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SLTI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SLTI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SLTIU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SLTIU, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_XORI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_XORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_ORI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_ANDI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ANDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SLLI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SRLI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SRAI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_ADDI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ADDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLTI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SLTI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLTIU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SLTIU, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_XORI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_XORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_ORI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_ANDI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ANDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SRLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SRAI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
 
-                            is_ADD <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_ADD, FUNC3_ADD, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SUB <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SUB, FUNC3_SUB, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SLL <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLL, FUNC3_SLL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SLT <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLT, FUNC3_SLT, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SLTU <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLTU, FUNC3_SLTU, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_XOR <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_XOR, FUNC3_XOR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SRL <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRL, FUNC3_SRL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_SRA <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRA, FUNC3_SRA, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_OR <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_OR, FUNC3_OR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
-                            is_AND <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_AND, FUNC3_AND, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_ADD <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_ADD, FUNC3_ADD, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SUB <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SUB, FUNC3_SUB, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLL <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLL, FUNC3_SLL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLT <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLT, FUNC3_SLT, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLTU <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLTU, FUNC3_SLTU, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_XOR <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_XOR, FUNC3_XOR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SRL <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRL, FUNC3_SRL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SRA <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRA, FUNC3_SRA, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_OR <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_OR, FUNC3_OR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_AND <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_AND, FUNC3_AND, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
 
-                            is_LB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LB, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LH, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LW, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LBU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LBU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
-                            is_LHU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_LHU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            is_LB <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LB, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            is_LH <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LH, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            is_LW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LW, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            is_LBU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LBU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
+                            is_LHU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LHU, OP_LB_LH_LW_LBU_LHU} ) ? 1 : 0;
 
-                            is_SB <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
-                            is_SH <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
-                            is_SW <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
+                            is_SB <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
+                            is_SH <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
+                            is_SW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
 
-                            case (bus_data_in[6:0])
+                            case (mem_data_in[6:0])
 
                                 /* S-type */
                                 OP_SB_SH_SW: begin
-                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:25], bus_data_in[11:7] };
+                                    immediate <= { {20{mem_data_in[31]}}, mem_data_in[31:25], mem_data_in[11:7] };
                                 end
 
                                 /* B-type */
                                 OP_BEQ_BNE_BLT_BGE_BLTU_BGEU: begin
-                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[7], bus_data_in[30:25], bus_data_in[11:8], 1'b0 };
+                                    immediate <= { {20{mem_data_in[31]}}, mem_data_in[7], mem_data_in[30:25], mem_data_in[11:8], 1'b0 };
                                 end
 
                                 /* U-type */
                                 OP_LUI,
                                 OP_AUIPC: begin
-                                    immediate <= { bus_data_in[31:12], 12'b0};
+                                    immediate <= { mem_data_in[31:12], 12'b0};
                                 end
 
                                 /* J-type */
                                 OP_JAL: begin
-                                    immediate <= { {11{bus_data_in[31]}}, bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
+                                    immediate <= { {11{mem_data_in[31]}}, mem_data_in[19:12], mem_data_in[20], mem_data_in[31:21], 1'b0 };
                                 end
 
                                 /* I-type */
-                                default: immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:20] };
+                                default: immediate <= { {20{mem_data_in[31]}}, mem_data_in[31:20] };
 
                             endcase
 
-                            instruction <= bus_data_in;
+                            instruction <= mem_data_in;
                             cpu_stage <= STAGE_INSTR_ALU_PREPARE;
                         end
 
@@ -400,13 +352,14 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_ACCESS: begin
-                            bus_addr <= alu_result;
+                            mem_addr_out <= alu_result;
 
-                            bus_data_out <= x[rs2_shamt];
-                            bus_wr_size <= {is_SW, is_SH, is_SB};
-                            bus_read_write <= (is_SB | is_SH | is_SW);
+                            mem_data_out <= x[rs2_shamt];
+                            mem_wen <= {is_SW, is_SH, is_SB};
+                            //mem_read_write <= (is_SB | is_SH | is_SW);
 
-                            bus_access <= 1;
+                            mem_access <= 1;
+                            mem_valid <= 1;
                             
                             cpu_stage <= (is_SB | is_SH | is_SW) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
@@ -424,29 +377,29 @@ module leiwand_rv32_core
                                 next_pc <= alu_result; 
                             end
                             else if (is_LB) begin
-                                case (bus_addr[1:0])
-                                    1: x[rd] <= { {24{bus_data_in[15]}}, bus_data_in[15:8] };
-                                    2: x[rd] <= { {24{bus_data_in[23]}},bus_data_in[23:16] };
-                                    3: x[rd] <= { {24{bus_data_in[31]}},bus_data_in[31:24] };
-                                    default: x[rd] <= { {24{bus_data_in[7]}},bus_data_in[7:0] };
+                                case (mem_addr_out[1:0])
+                                    1: x[rd] <= { {24{mem_data_in[15]}}, mem_data_in[15:8] };
+                                    2: x[rd] <= { {24{mem_data_in[23]}},mem_data_in[23:16] };
+                                    3: x[rd] <= { {24{mem_data_in[31]}},mem_data_in[31:24] };
+                                    default: x[rd] <= { {24{mem_data_in[7]}},mem_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LH) begin
-                                x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
+                                x[rd] <= (mem_addr_out[1]) ? {{16{mem_data_in[31]}},mem_data_in[31:16]} : {{16{mem_data_in[15]}},mem_data_in[15:0]};
                             end
                             else if (is_LW) begin
-                                x[rd] <= bus_data_in;
+                                x[rd] <= mem_data_in;
                             end
                             else if (is_LBU) begin
-                                case (bus_addr[1:0])
-                                    1: x[rd] <= { {24{1'b0}},bus_data_in[15:8] };
-                                    2: x[rd] <= { {24{1'b0}},bus_data_in[23:16] };
-                                    3: x[rd] <= { {24{1'b0}},bus_data_in[31:24] };
-                                    default: x[rd] <= { {24{1'b0}},bus_data_in[7:0] };
+                                case (mem_addr_out[1:0])
+                                    1: x[rd] <= { {24{1'b0}},mem_data_in[15:8] };
+                                    2: x[rd] <= { {24{1'b0}},mem_data_in[23:16] };
+                                    3: x[rd] <= { {24{1'b0}},mem_data_in[31:24] };
+                                    default: x[rd] <= { {24{1'b0}},mem_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LHU) begin
-                                x[rd] <= { {16{1'b0}}, (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0] };
+                                x[rd] <= { {16{1'b0}}, (mem_addr_out[1]) ? mem_data_in[31:16] : mem_data_in[15:0] };
                             end
                             else x[rd] <= alu_result;
 
@@ -523,11 +476,10 @@ module leiwand_rv32_core
     assign alu_is_sub_op = (is_SUB);
 
     assign debug_led = x[10][0];
-    assign o_we = we_out_reg;
-    assign o_stb = stb_out_reg;
-    assign o_cyc = cyc_out_reg;
-    assign o_addr = address_out_reg;
-    assign o_data = data_out_reg;
-    assign o_data_wr_size = bus_wr_size;
+
+    assign o_mem_valid = mem_valid;
+    assign o_mem_addr = mem_addr_out;
+    assign o_mem_data = mem_data_out;
+    assign o_mem_wen = mem_wen;
 
 endmodule
