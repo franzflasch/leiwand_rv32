@@ -138,13 +138,13 @@ module leiwand_rv32_core
     reg is_SB, is_SH, is_SW;
 
     /* ALU */
-    reg [(`MEM_WIDTH-1):0] alu_result_slt;
-    reg [(`MEM_WIDTH-1):0] alu_result_sltu;
+    reg alu_result_slt;
+    reg alu_result_sltu;
     reg [(`MEM_WIDTH-1):0] alu_result_xor;
     reg [(`MEM_WIDTH-1):0] alu_result_or;
     reg [(`MEM_WIDTH-1):0] alu_result_and;
     reg [(`MEM_WIDTH-1):0] alu_result_sl;
-    reg [(`MEM_WIDTH-1):0] alu_result_sr;
+    reg [(`MEM_WIDTH):0] alu_result_sr;
     reg [(`MEM_WIDTH-1):0] alu_result_sub;
     reg [(`MEM_WIDTH-1):0] alu_result_add;
     reg [(`MEM_WIDTH-1):0] alu_op1;
@@ -370,7 +370,7 @@ module leiwand_rv32_core
                             end
 
                             if(is_alu_shift_immediate) begin
-                                alu_op2 <= rs2_shamt;
+                                alu_op2 <= { {27{1'b0}}, rs2_shamt };
                             end
                             else if(is_alu_logic || is_alu_shift) begin
                                 alu_op2 <= x[rs2_shamt];
@@ -408,7 +408,7 @@ module leiwand_rv32_core
 
                             bus_access <= 1;
                             
-                            cpu_stage <= (is_SB | is_SH | is_SW) ?  cpu_stage <= STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
+                            cpu_stage <= (is_SB | is_SH | is_SW) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_WRITEBACK: begin
@@ -425,10 +425,10 @@ module leiwand_rv32_core
                             end
                             else if (is_LB) begin
                                 case (bus_addr[1:0])
-                                    1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
-                                    2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
-                                    3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
-                                    default: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
+                                    1: x[rd] <= { {24{bus_data_in[15]}}, bus_data_in[15:8] };
+                                    2: x[rd] <= { {24{bus_data_in[23]}},bus_data_in[23:16] };
+                                    3: x[rd] <= { {24{bus_data_in[31]}},bus_data_in[31:24] };
+                                    default: x[rd] <= { {24{bus_data_in[7]}},bus_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LH) begin
@@ -439,14 +439,14 @@ module leiwand_rv32_core
                             end
                             else if (is_LBU) begin
                                 case (bus_addr[1:0])
-                                    1: x[rd] <= bus_data_in[15:8];
-                                    2: x[rd] <= bus_data_in[23:16];
-                                    3: x[rd] <= bus_data_in[31:24];
-                                    default: x[rd] <= bus_data_in[7:0];
+                                    1: x[rd] <= { {24{1'b0}},bus_data_in[15:8] };
+                                    2: x[rd] <= { {24{1'b0}},bus_data_in[23:16] };
+                                    3: x[rd] <= { {24{1'b0}},bus_data_in[31:24] };
+                                    default: x[rd] <= { {24{1'b0}},bus_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LHU) begin
-                                x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
+                                x[rd] <= { {16{1'b0}}, (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0] };
                             end
                             else x[rd] <= alu_result;
 
@@ -503,13 +503,13 @@ module leiwand_rv32_core
     wire alu_is_sub_op;
     wire [(`MEM_WIDTH-1):0] alu_result;
 
-    assign alu_result = ( alu_is_slt_op ? alu_result_slt :
-                          alu_is_sltu_op ? alu_result_sltu :
+    assign alu_result = ( alu_is_slt_op ? { {31{1'b0}},alu_result_slt } :
+                          alu_is_sltu_op ? { {31{1'b0}},alu_result_sltu } :
                           alu_is_xor_op ? alu_result_xor :
                           alu_is_or_op ? alu_result_or :
                           alu_is_and_op ? alu_result_and :
                           alu_is_sl_op ? alu_result_sl :
-                          alu_is_sr_op ? alu_result_sr :
+                          alu_is_sr_op ? alu_result_sr[31:0] :
                           alu_is_sub_op ? alu_result_sub :
                           alu_result_add );
 

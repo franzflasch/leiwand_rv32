@@ -16,7 +16,6 @@ module clk_divn #(
 
     reg [WIDTH-1:0] pos_count = 0;
     reg [WIDTH-1:0] neg_count = 0;
-    wire [WIDTH-1:0] r_nxt;
 
     always @(posedge clk)
     if (pos_count == N-1) pos_count <= 0;
