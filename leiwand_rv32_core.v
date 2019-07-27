@@ -55,7 +55,7 @@ module leiwand_rv32_core
     reg [(`MEM_WIDTH-1):0] mem_addr_out;
     reg [(`MEM_WIDTH-1):0] mem_data_in;
     reg [(`MEM_WIDTH-1):0] mem_data_out;
-    reg [4:0] mem_wen;
+    reg [3:0] mem_wen;
     reg mem_access;
 
     /* RV32I Base instructions */
@@ -211,6 +211,7 @@ module leiwand_rv32_core
                 mem_data_in <= i_mem_data;
                 mem_access <= 0;
                 mem_valid <= 0;
+                mem_wen <= 0;
             end
 
             if (!mem_access) begin
@@ -348,20 +349,33 @@ module leiwand_rv32_core
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
                             alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
 
-                            cpu_stage <= is_load_store ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
+                            cpu_stage <= (is_load | is_store) ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_ACCESS: begin
                             mem_addr_out <= alu_result;
-
                             mem_data_out <= x[rs2_shamt];
-                            mem_wen <= {is_SW, is_SH, is_SB};
-                            //mem_read_write <= (is_SB | is_SH | is_SW);
+
+                            if(is_SB) begin
+                                case (alu_result[1:0])
+                                    1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0010; end
+                                    2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0100; end
+                                    3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 4'b1000; end
+                                    default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0001; end
+                                endcase
+                            end
+                            if(is_SH) begin
+                                case (alu_result[1])
+                                    1: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 4'b1100; end
+                                    default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 4'b0011; end
+                                endcase
+                            end
+                            if(is_SW) begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 4'b1111; end
 
                             mem_access <= 1;
                             mem_valid <= 1;
                             
-                            cpu_stage <= (is_SB | is_SH | is_SW) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
+                            cpu_stage <= (is_store) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_WRITEBACK: begin
@@ -443,8 +457,11 @@ module leiwand_rv32_core
     wire is_alu_shift;
     assign is_alu_shift = (is_SLL | is_SRL | is_SRA);
 
-    wire is_load_store;
-    assign is_load_store = (is_LB | is_LH | is_LW | is_LBU | is_LHU | is_SB | is_SH | is_SW);
+    wire is_load;
+    assign is_load = (is_LB | is_LH | is_LW | is_LBU | is_LHU);
+
+    wire is_store;
+    assign is_store = (is_SB | is_SH | is_SW);
 
     wire alu_is_slt_op;
     wire alu_is_sltu_op;
