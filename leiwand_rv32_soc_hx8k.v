@@ -112,6 +112,7 @@ module leiwandrv32_soc_hx8k(
 		.WORDS(MEMORY_SIZE)
 	) internal_rom (
 		.clk(system_clock),
+        .rst(!RST),
         .valid(mem_valid),
         .ready(mem_ready),
 		.wen(mem_wen),
