@@ -134,6 +134,15 @@ module leiwand_rv32_core
 
     reg is_load_instruction;
 
+    reg is_LUI;
+    reg is_AUIPC;
+    reg is_JAL;
+    reg is_JALR;
+    reg is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU;
+    reg is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI;
+    reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
+    reg is_FENCE, is_FENCEI;
+
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -186,6 +195,12 @@ module leiwand_rv32_core
 
             is_load_instruction <= 0;
 
+            {is_LUI, 
+             is_AUIPC, 
+             is_JAL, is_JALR, 
+             is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU, 
+             is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI, 
+             is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND} <= 0;
         end
         else begin
 
@@ -218,6 +233,39 @@ module leiwand_rv32_core
                             rd[4:0] <= bus_data_in[11:7];
 
                             is_load_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
+
+                            is_LUI <= (bus_data_in[6:0] == OP_LUI) ? 1 : 0;
+                            is_AUIPC <= (bus_data_in[6:0] == OP_AUIPC) ? 1 : 0;
+                            is_JAL <= (bus_data_in[6:0] == OP_JAL) ? 1 : 0;
+                            is_JALR <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_JALR, OP_JALR} ) ? 1 : 0;
+
+                            is_BEQ <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BEQ, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BNE <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BNE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BLT <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BLT, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BGE <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BGE, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BLTU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BLTU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+                            is_BGEU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_BGEU, OP_BEQ_BNE_BLT_BGE_BLTU_BGEU} ) ? 1 : 0;
+
+                            is_ADDI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ADDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLTI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SLTI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLTIU <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_SLTIU, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_XORI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_XORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_ORI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_ANDI <= ({bus_data_in[14:12],bus_data_in[6:0]} == {FUNC3_ANDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SLLI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SRLI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            is_SRAI <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+
+                            is_ADD <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_ADD, FUNC3_ADD, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SUB <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SUB, FUNC3_SUB, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLL <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLL, FUNC3_SLL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLT <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLT, FUNC3_SLT, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SLTU <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SLTU, FUNC3_SLTU, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_XOR <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_XOR, FUNC3_XOR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SRL <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRL, FUNC3_SRL, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_SRA <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_SRA, FUNC3_SRA, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_OR <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_OR, FUNC3_OR, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
+                            is_AND <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_AND, FUNC3_AND, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
 
                             case(bus_data_in[6:0])
 
@@ -261,64 +309,64 @@ module leiwand_rv32_core
 
                         STAGE_INSTR_EXECUTE: begin
                             /* LUI */
-                            if ( (instruction[6:0] == OP_LUI) ) begin
+                            if (is_LUI) begin
                                 x[rd] <= (immediate << 12);
                                 `debug($display("INSTR LUI");)
                             end
                             /* AUIPC */
-                            else if ( (instruction[6:0] == OP_AUIPC) ) begin
+                            else if (is_AUIPC) begin
                                 x[rd] <= (pc - 4) + (immediate << 12);
                                 `debug($display("INSTR AUIPC");)
                             end
                             /* JAL */
-                            else if (instruction[6:0] == OP_JAL) begin
+                            else if (is_JAL) begin
                                 x[rd] <= pc;
                                 pc <= (pc - 4) + { {11{immediate[20]}}, immediate[20:0] };
                                 `debug($display("INSTR JAL");)
                             end
                             /* JALR */
-                            else if ( (instruction[6:0] == OP_JALR) && (instruction[14:12] == FUNC3_JALR) ) begin
+                            else if (is_JALR) begin
                                 x[rd] <= pc;
                                 pc <= ( {x[rs1][31:1], 1'b0} + { {20{immediate[11]}}, immediate[11:1], 1'b0 } );
                                 `debug($display("INSTR JALR");)
                             end
                             /* BEQ */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BEQ) ) begin
+                            else if (is_BEQ) begin
                                 if(x[rs1] == x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BNE) ) begin
+                            else if (is_BNE) begin
                                 if(x[rs1] != x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BNE");)
                             end
                             /* BLT */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLT) ) begin
+                            else if (is_BLT) begin
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLT");)
                             end
                             /* BGE */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGE) ) begin
+                            else if (is_BGE) begin
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BGE");)
                             end
                             /* BLTU */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLTU) ) begin
+                            else if (is_BLTU) begin
                                 if(x[rs1] < x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 `debug($display("INSTR BLTU");)
                             end
                             /* BGEU */
-                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGEU) ) begin
+                            else if (is_BGEU) begin
                                 if(x[rs1] >= x[rs2_shamt]) begin
                                     pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
@@ -337,195 +385,104 @@ module leiwand_rv32_core
                             /* SH */
                             /* SW */
                             /* ADDI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_ADDI) ) begin
+                            else if (is_ADDI) begin
                                 x[rd] <= ($signed(x[rs1]) + $signed(immediate[11:0]));
                                 `debug($display("INSTR ADDI");)
                             end
                             /* SLTI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_SLTI) ) begin
+                            else if (is_SLTI) begin
                                 x[rd] <= ($signed(x[rs1]) < $signed(immediate[11:0]));
                                 `debug($display("INSTR SLTI");)
                             end
                             /* SLTIU */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_SLTIU) ) begin
+                            else if (is_SLTIU) begin
                                 if(immediate[11]) x[rd] <= x[rs1] < ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= x[rs1] < immediate[31:0];
                                 `debug($display("INSTR SLTIU");)
                             end
                             /* XORI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_XORI) ) begin
+                            else if (is_XORI) begin
                                 if(immediate[11]) x[rd] <= x[rs1] ^ ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] ^ immediate[31:0]);
                                 `debug($display("INSTR XORI");)
                             end
                             /* ORI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_ORI) ) begin
+                            else if (is_ORI) begin
                                 if(immediate[11]) x[rd] <= x[rs1] | ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] | immediate[31:0]);
                                 `debug($display("INSTR ORI");)
                             end
                             /* ANDI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_ANDI) ) begin
+                            else if (is_ANDI) begin
                                 if(immediate[11]) x[rd] <= x[rs1] & ( immediate[31:0] | 32'hfffff000 );
                                 else x[rd] <= (x[rs1] & immediate[31:0]);
                                 `debug($display("INSTR ANDI");)
                             end
                             /* SLLI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_SLLI) && 
-                                      (instruction[31:25] == FUNC7_SLLI) ) begin
+                            else if (is_SLLI) begin
                                 x[rd] <= x[rs1] << rs2_shamt[4:0];
                                 `debug($display("INSTR SLLI");)
                             end
                             /* SRLI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_SRLI) && 
-                                      (instruction[31:25] == FUNC7_SRLI) ) begin
+                            else if (is_SRLI) begin
                                 x[rd] <= x[rs1] >> rs2_shamt[4:0];
                                 `debug($display("INSTR SRLI");)
                             end
                             /* SRAI */
-                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && 
-                                      (instruction[14:12] == FUNC3_SRAI) && 
-                                      (instruction[31:25] == FUNC7_SRAI) ) begin
+                            else if (is_SRAI) begin
                                 /* Arithmetic shift is >>> */
                                 x[rd] <= ($signed(x[rs1]) >>> rs2_shamt[4:0]);
                                 `debug($display("INSTR SRAI");)
                             end
                             /* ADD */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_ADD) && 
-                                      (instruction[31:25] == FUNC7_ADD) ) begin
+                            else if (is_ADD) begin
                                 x[rd] <= (x[rs1] + x[rs2_shamt]);
                                 `debug($display("INSTR ADD");)
                             end
                             /* SUB */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SUB) && 
-                                      (instruction[31:25] == FUNC7_SUB) ) begin
+                            else if (is_SUB) begin
                                 x[rd] <= (x[rs1] - x[rs2_shamt]);
                                 `debug($display("INSTR SUB");)
                             end
                             /* SLL */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SLL) && (instruction[31:25] == FUNC7_SLL) ) begin
+                            else if (is_SLL) begin
                                 x[rd] <= (x[rs1] << (x[rs2_shamt] & 'h1F));
                                 `debug($display("INSTR SLL");)
                             end
                             /* SLT */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SLT) && 
-                                      (instruction[31:25] == FUNC7_SLT) ) begin
+                            else if (is_SLT) begin
                                 x[rd] <= ($signed(x[rs1]) < $signed(x[rs2_shamt]));
                                 `debug($display("INSTR SLT");)
                             end
                             /* SLTU */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SLTU) && 
-                                      (instruction[31:25] == FUNC7_SLTU) ) begin
+                            else if (is_SLTU) begin
                                 x[rd] <= (x[rs1] < x[rs2_shamt]);
                                 `debug($display("INSTR SLTU");)
                             end
                             /* XOR */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_XOR) && 
-                                      (instruction[31:25] == FUNC7_XOR) ) begin
+                            else if (is_XOR) begin
                                 x[rd] <= (x[rs1] ^ x[rs2_shamt]);
                                 `debug($display("INSTR XOR");)
                             end                            
                             /* SRL */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SRL) && 
-                                      (instruction[31:25] == FUNC7_SRL) ) begin
+                            else if (is_SRL) begin
                                 x[rd] <= (x[rs1] >> (x[rs2_shamt] & 'h1F));
                                 `debug($display("INSTR SRL");)
                             end
                             /* SRA */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_SRA) && 
-                                      (instruction[31:25] == FUNC7_SRA) ) begin
+                            else if (is_SRA) begin
                                 x[rd] <= ($signed(x[rs1]) >>> (x[rs2_shamt] & 'h1F));
                                 `debug($display("INSTR SRA");)
                             end
                             /* OR */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_OR) && 
-                                      (instruction[31:25] == FUNC7_OR) ) begin
+                            else if (is_OR) begin
                                 x[rd] <= (x[rs1] | x[rs2_shamt]);
                                 `debug($display("INSTR OR");)
                             end
                             /* AND */
-                            else if ( (instruction[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) && 
-                                      (instruction[14:12] == FUNC3_AND) && 
-                                      (instruction[31:25] == FUNC7_AND) ) begin
+                            else if (is_AND) begin
                                 x[rd] <= (x[rs1] & x[rs2_shamt]);
                                 `debug($display("INSTR AND");)
-                            end
-                            /* FENCE */
-                            else if ( (instruction[6:0] == OP_FENCE_FENCEI) && (instruction[14:12] == FUNC3_FENCE) ) begin
-                                /* NOP */
-                                `debug($display("INSTR FENCE");)
-                            end
-                            /* FENCE.I */
-                            else if ( (instruction[6:0] == OP_FENCE_FENCEI) && (instruction[14:12] == FUNC3_FENCEI) ) begin
-                                /* NOP */
-                                `debug($display("INSTR FENCEI");)
-                            end
-                            /* ECALL */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_ECALL) && 
-                                      (instruction[31:20] == IMM11_ECALL) ) begin
-                                /* NOP */
-                                `debug($display("INSTR ECALL");)
-                            end
-                            /* EBREAK */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_EBREAK) && 
-                                      (instruction[31:20] == IMM11_EBREAK) ) begin
-                                /* NOP */
-                                `debug($display("INSTR EBREAK");)
-                            end
-                            /* CSRRW */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRW) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRW");)
-                            end
-                            /* CSRRS */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRS) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRS");)
-                            end
-                            /* CSRRC */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRC) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRC");)
-                            end
-                            /* CSRRWI */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRWI) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRWI");)
-                            end
-                            /* CSRRSI */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRSI) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRSI");)
-                            end
-                            /* CSRRCI */
-                            else if ( (instruction[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) && 
-                                      (instruction[14:12] == FUNC3_CSRRCI) ) begin
-                                /* NOP */
-                                `debug($display("INSTR CSRRCI");)
                             end
                             else begin 
                                 `debug($display("Unknown instruction! %x", instruction);)
@@ -603,7 +560,7 @@ module leiwand_rv32_core
                                 `debug($display("Unknown access instruction! %x", instruction);)
                                 /* Unknown instruction */
                             end
-                            is_load_instruction <= 0;
+
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
 
