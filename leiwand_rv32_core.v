@@ -216,11 +216,6 @@ module leiwand_rv32_core
                             bus_access <= 1;
                             bus_read_write <= 0;
 
-                            // instruction <= 0;
-                            // rs1 <= 0;
-                            // rs2_shamt <= 0;
-                            // rd <= 0;
-                            // immediate <= 0;
                             pc <= next_pc;
                             next_pc <= next_pc + 4;
                             cpu_stage <= STAGE_INSTR_DECODE;
@@ -269,13 +264,6 @@ module leiwand_rv32_core
                             is_AND <= ({bus_data_in[31:25],bus_data_in[14:12],bus_data_in[6:0]} == {FUNC7_AND, FUNC3_AND, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
 
                             case(bus_data_in[6:0])
-
-                                // /* R-type */
-                                // OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND: begin
-                                //     rs1[4:0] <= bus_data_in[19:15];
-                                //     rs2_shamt[4:0] <= bus_data_in[24:20];
-                                //     rd[4:0] <= bus_data_in[11:7];
-                                // end
 
                                 /* I-type */
                                 OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, 
@@ -633,7 +621,6 @@ module leiwand_rv32_core
 
 
 
-    //assign x[0][31:0] = 32'h00000000;
     assign o_we = we_out_reg;
     assign o_stb = stb_out_reg;
     assign o_cyc = cyc_out_reg;
