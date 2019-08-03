@@ -147,15 +147,26 @@ module leiwand_rv32_core
     reg is_FENCE, is_FENCEI;
 
     /* ALU */
+    reg [(`MEM_WIDTH-1):0] alu_result_addu;
     reg [(`MEM_WIDTH-1):0] alu_result_add;
+    reg [(`MEM_WIDTH-1):0] alu_result_sub;
+    reg alu_result_eq;
+    reg alu_result_ge;
+    reg alu_result_geu;
+    reg [(`MEM_WIDTH-1):0] alu_result_xor;
+    reg [(`MEM_WIDTH-1):0] alu_result_or;
+    reg [(`MEM_WIDTH-1):0] alu_result_and;
+    reg [(`MEM_WIDTH-1):0] alu_result_sll;
+    reg [(`MEM_WIDTH-1):0] alu_result_srl;
+    reg [(`MEM_WIDTH-1):0] alu_result_sra;
     reg [(`MEM_WIDTH-1):0] alu_op1;
     reg [(`MEM_WIDTH-1):0] alu_op2;
 
     reg [(`MEM_WIDTH-1):0] alu_branch_op1;
     reg [(`MEM_WIDTH-1):0] alu_branch_op2;
-    reg [(`MEM_WIDTH-1):0] alu_branch_eq;
-    reg [(`MEM_WIDTH-1):0] alu_branch_ge;
-    reg [(`MEM_WIDTH-1):0] alu_branch_geu;
+    reg alu_branch_eq;
+    reg alu_branch_ge;
+    reg alu_branch_geu;
 
     /* CPU Core */
     always @(posedge i_clk) begin
@@ -217,8 +228,20 @@ module leiwand_rv32_core
              is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI, 
              is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND} <= 0;
 
-             {alu_result_add, alu_op1, alu_op2} <= 0;
-             {alu_branch_eq, alu_branch_ge, alu_branch_geu, alu_branch_op1, alu_branch_op2} <= 0;
+            {alu_result_addu, 
+             alu_result_add, 
+             alu_result_sub, 
+             alu_result_eq, 
+             alu_result_ge, 
+             alu_branch_geu,
+             alu_result_xor, 
+             alu_result_or, 
+             alu_result_and,
+             alu_result_sll, 
+             alu_result_srl, 
+             alu_result_sra, 
+             alu_op1, alu_op2} <= 0;
+            {alu_branch_eq, alu_branch_ge, alu_branch_geu, alu_branch_op1, alu_branch_op2} <= 0;
         end
         else begin
 
@@ -331,13 +354,39 @@ module leiwand_rv32_core
                                 alu_op1 <= pc;
                                 alu_op2 <= immediate;
                             end
+                            if(is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI) begin
+                                alu_op1 <= x[rs1];
+                                alu_op2 <= immediate;
+                            end
+                            if(is_SLLI || is_SRLI || is_SRAI) begin
+                                alu_op1 <= x[rs1];
+                                alu_op2 <= rs2_shamt[4:0];
+                            end
+                            if(is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND) begin
+                                alu_op1 <= x[rs1];
+                                alu_op2 <= x[rs2_shamt];
+                            end
+                            if(is_SLL || is_SRL || is_SRA) begin
+                                alu_op1 <= x[rs1];
+                                alu_op2 <= x[rs2_shamt][4:0];
+                            end
 
                             cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
 
                         STAGE_INSTR_ALU_EXECUTE: begin
 
-                            alu_result_add <= alu_op1 + alu_op2;
+                            alu_result_addu <= alu_op1 + alu_op2;
+                            alu_result_add <= $signed(alu_op1) + $signed(alu_op2);
+                            alu_result_sub <= alu_op1 - alu_op2;
+                            alu_result_ge <= $signed(alu_op1) >= $signed(alu_op2);
+                            alu_result_geu <= alu_op1 >= alu_op2;
+                            alu_result_xor <= alu_op1 ^ alu_op2;
+                            alu_result_or <= alu_op1 | alu_op2;
+                            alu_result_and <= alu_op1 & alu_op2;
+                            alu_result_sll <= alu_op1 << alu_op2;
+                            alu_result_srl <= alu_op1 >> alu_op2;
+                            alu_result_sra <= $signed(alu_op1) >>> alu_op2;
 
                             alu_branch_eq <= (alu_branch_op1 == alu_branch_op2);
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
@@ -354,107 +403,6 @@ module leiwand_rv32_core
                             /* SB */
                             /* SH */
                             /* SW */
-                            /* ADDI */
-                            else if (is_ADDI) begin
-                                x[rd] <= ($signed(x[rs1]) + $signed(immediate));
-                                `debug($display("INSTR ADDI");)
-                            end
-                            /* SLTI */
-                            else if (is_SLTI) begin
-                                x[rd] <= ($signed(x[rs1]) < $signed(immediate));
-                                `debug($display("INSTR SLTI");)
-                            end
-                            /* SLTIU */
-                            else if (is_SLTIU) begin
-                                x[rd] <= x[rs1] < immediate;
-                                `debug($display("INSTR SLTIU");)
-                            end
-                            /* XORI */
-                            else if (is_XORI) begin
-                                x[rd] <= (x[rs1] ^ immediate);
-                                `debug($display("INSTR XORI");)
-                            end
-                            /* ORI */
-                            else if (is_ORI) begin
-                                x[rd] <= (x[rs1] | immediate);
-                                `debug($display("INSTR ORI");)
-                            end
-                            /* ANDI */
-                            else if (is_ANDI) begin
-                                x[rd] <= (x[rs1] & immediate);
-                                `debug($display("INSTR ANDI");)
-                            end
-                            /* SLLI */
-                            else if (is_SLLI) begin
-                                x[rd] <= x[rs1] << rs2_shamt[4:0];
-                                `debug($display("INSTR SLLI");)
-                            end
-                            /* SRLI */
-                            else if (is_SRLI) begin
-                                x[rd] <= x[rs1] >> rs2_shamt[4:0];
-                                `debug($display("INSTR SRLI");)
-                            end
-                            /* SRAI */
-                            else if (is_SRAI) begin
-                                /* Arithmetic shift is >>> */
-                                x[rd] <= ($signed(x[rs1]) >>> rs2_shamt[4:0]);
-                                `debug($display("INSTR SRAI");)
-                            end
-                            /* ADD */
-                            else if (is_ADD) begin
-                                x[rd] <= (x[rs1] + x[rs2_shamt]);
-                                `debug($display("INSTR ADD");)
-                            end
-                            /* SUB */
-                            else if (is_SUB) begin
-                                x[rd] <= (x[rs1] - x[rs2_shamt]);
-                                `debug($display("INSTR SUB");)
-                            end
-                            /* SLL */
-                            else if (is_SLL) begin
-                                x[rd] <= (x[rs1] << x[rs2_shamt][4:0]);
-                                `debug($display("INSTR SLL");)
-                            end
-                            /* SLT */
-                            else if (is_SLT) begin
-                                x[rd] <= ($signed(x[rs1]) < $signed(x[rs2_shamt]));
-                                `debug($display("INSTR SLT");)
-                            end
-                            /* SLTU */
-                            else if (is_SLTU) begin
-                                x[rd] <= (x[rs1] < x[rs2_shamt]);
-                                `debug($display("INSTR SLTU");)
-                            end
-                            /* XOR */
-                            else if (is_XOR) begin
-                                x[rd] <= (x[rs1] ^ x[rs2_shamt]);
-                                `debug($display("INSTR XOR");)
-                            end                            
-                            /* SRL */
-                            else if (is_SRL) begin
-                                x[rd] <= (x[rs1] >> x[rs2_shamt][4:0]);
-                                `debug($display("INSTR SRL");)
-                            end
-                            /* SRA */
-                            else if (is_SRA) begin
-                                x[rd] <= ($signed(x[rs1]) >>> x[rs2_shamt][4:0]);
-                                `debug($display("INSTR SRA");)
-                            end
-                            /* OR */
-                            else if (is_OR) begin
-                                x[rd] <= (x[rs1] | x[rs2_shamt]);
-                                `debug($display("INSTR OR");)
-                            end
-                            /* AND */
-                            else if (is_AND) begin
-                                x[rd] <= (x[rs1] & x[rs2_shamt]);
-                                `debug($display("INSTR AND");)
-                            end
-                            else begin 
-                                `debug($display("Unknown instruction! %x", instruction);)
-                                /* Unknown instruction */
-                            end
-
                             cpu_stage <= (is_load_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
                         end
 
@@ -532,17 +480,36 @@ module leiwand_rv32_core
 
                         STAGE_INSTR_WRITEBACK: begin
 
-                            if (is_LUI) x[rd] <= alu_result_add;
-                            if (is_AUIPC) x[rd] <= alu_result_add;
-                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_add; end
+                            if (is_LUI) x[rd] <= alu_result_addu;
+                            if (is_AUIPC) x[rd] <= alu_result_addu;
+                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
                             if ( (is_BEQ && alu_branch_eq) || 
                                  (is_BNE && !alu_branch_eq) || 
                                  (is_BLT && !alu_branch_ge) ||
                                  (is_BGE && alu_branch_ge) || 
                                  (is_BLTU && !alu_branch_geu) ||
                                  (is_BGEU && alu_branch_geu) ) begin
-                                next_pc <= alu_result_add; 
+                                next_pc <= alu_result_addu; 
                             end
+                            if(is_ADDI) begin x[rd] <= alu_result_add; end
+                            if(is_SLTI) begin x[rd] <= !alu_result_ge; end
+                            if(is_SLTIU) begin x[rd] <= !alu_result_geu; end
+                            if(is_XORI) begin x[rd] <= alu_result_xor; end
+                            if(is_ORI) begin x[rd] <= alu_result_or; end
+                            if(is_ANDI) begin x[rd] <= alu_result_and; end
+                            if(is_SLLI) begin x[rd] <= alu_result_sll; end
+                            if(is_SRLI) begin x[rd] <= alu_result_srl; end
+                            if(is_SRAI) begin x[rd] <= alu_result_sra; end
+                            if(is_ADD) begin x[rd] <= alu_result_add; end
+                            if(is_SUB) begin x[rd] <= alu_result_sub; end
+                            if(is_SLL) begin x[rd] <= alu_result_sll; end
+                            if(is_SLT) begin x[rd] <= !alu_result_ge; end
+                            if(is_SLTU) begin x[rd] <= !alu_result_geu; end
+                            if(is_XOR) begin x[rd] <= alu_result_xor; end
+                            if(is_SRL) begin x[rd] <= alu_result_srl; end
+                            if(is_SRA) begin x[rd] <= alu_result_sra; end
+                            if(is_OR) begin x[rd] <= alu_result_or; end
+                            if(is_AND) begin x[rd] <= alu_result_and; end
 
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
