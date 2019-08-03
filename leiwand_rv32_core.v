@@ -3,7 +3,7 @@
 `include "helper.v"
 `include "leiwand_rv32_constants.v"
 
-`define DEBUG
+//`define DEBUG
 
 `ifdef DEBUG
   `define debug(debug_command) debug_command
@@ -173,6 +173,15 @@ module leiwand_rv32_core
     reg alu_branch_ge;
     reg alu_branch_geu;
 
+    /* WB Bus Handling */
+    /* WB master signals */
+    reg we_out_reg;
+    reg stb_out_reg;
+    reg cyc_out_reg;
+    reg [(`MEM_WIDTH-1):0] address_out_reg;
+    reg [(`MEM_WIDTH-1):0] data_out_reg;
+
+
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -247,8 +256,56 @@ module leiwand_rv32_core
              alu_result_sra, 
              alu_op1, alu_op2} <= 0;
             {alu_branch_eq, alu_branch_ge, alu_branch_geu, alu_branch_op1, alu_branch_op2} <= 0;
+
+            bus_access <= 0;
+            bus_ready <= 0;
+            bus_data_out <= 0;
+            bus_data_in <= 0;
+            bus_read_write <= 0;
+            bus_addr <= 0;
+
+            /* initialize wb master signals */
+            we_out_reg <= 0;
+            cyc_out_reg <= 0;
+            address_out_reg <= 0; //`MEM_WIDTH'h20000004;
+            data_out_reg <= 0;
+            stb_out_reg <= 0;
         end
         else begin
+
+            /* initialization */
+            if(!i_stall && !cyc_out_reg && !bus_access) begin
+                bus_ready <= 1;
+            end
+
+            /* Begin access */
+            if(bus_ready && bus_access) begin
+                address_out_reg <= bus_addr;
+                we_out_reg <= bus_read_write;
+                stb_out_reg <= 1;
+
+                if(bus_read_write) begin
+                    data_out_reg <= bus_data_out;
+                end
+
+                cyc_out_reg <= 1;
+                bus_ready <= 0;
+            end
+
+            /* Wait for slave ack */
+            if(bus_access && !bus_ready) begin
+                stb_out_reg <= 0;
+            end
+
+            if(i_ack && !i_stall) begin
+                bus_data_in <= i_data;
+                address_out_reg <= 0;
+                we_out_reg <= 0;
+                data_out_reg <= 0;
+                cyc_out_reg <= 0;
+                bus_access <= 0;
+            end
+
 
             if (bus_ready && !bus_access) begin
 
@@ -514,67 +571,6 @@ module leiwand_rv32_core
 
             /* reset x0 to zero, as theoretically in this implementation it can be set to any value */
             x[0] <= 0; 
-        end
-    end
-
-
-    /* WB Bus Handling */
-    /* WB master signals */
-    reg we_out_reg;
-    reg stb_out_reg;
-    reg cyc_out_reg;
-    reg [(`MEM_WIDTH-1):0] address_out_reg;
-    reg [(`MEM_WIDTH-1):0] data_out_reg;
-
-    always @(posedge i_clk) begin
-        if(i_rst) begin
-            bus_access <= 0;
-            bus_ready <= 0;
-            bus_data_out <= 0;
-            bus_data_in <= 0;
-            bus_read_write <= 0;
-            bus_addr <= 0;
-
-            /* initialize wb master signals */
-            we_out_reg <= 0;
-            cyc_out_reg <= 0;
-            address_out_reg <= 0; //`MEM_WIDTH'h20000004;
-            data_out_reg <= 0;
-            stb_out_reg <= 0;
-        end
-        else begin
-            /* initialization */
-            if(!i_stall && !cyc_out_reg && !bus_access) begin
-                bus_ready <= 1;
-            end
-
-            /* Begin access */
-            if(bus_ready && bus_access) begin
-                address_out_reg <= bus_addr;
-                we_out_reg <= bus_read_write;
-                stb_out_reg <= 1;
-
-                if(bus_read_write) begin
-                    data_out_reg <= bus_data_out;
-                end
-
-                cyc_out_reg <= 1;
-                bus_ready <= 0;
-            end
-
-            /* Wait for slave ack */
-            if(bus_access && !bus_ready) begin
-                stb_out_reg <= 0;
-            end
-
-            if(i_ack && !i_stall) begin
-                bus_data_in <= i_data;
-                address_out_reg <= 0;
-                we_out_reg <= 0;
-                data_out_reg <= 0;
-                cyc_out_reg <= 0;
-                bus_access <= 0;
-            end
         end
     end
 
