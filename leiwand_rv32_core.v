@@ -341,12 +341,8 @@ module leiwand_rv32_core
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BGEU");)
                             end
-                            /* LB */
-                            /* LH */
-                            /* LW */
+                            /* LB *//* LH *//* LW *//* LBU *//* LHU */
                             else if ( (instruction[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
-                                //if(immediate[11]) bus_addr <= ( x[rs1] + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                //else bus_addr <= ( x[rs1] + $signed(immediate[31:0]) );
                                 bus_addr <= ( $signed(x[rs1]) + $signed(immediate[11:0]) );
                                 bus_data_out <= 0;
                                 bus_access <= 1;
@@ -354,8 +350,6 @@ module leiwand_rv32_core
                                 cpu_stage <= STAGE_INSTR_ACCESS;
                                 `debug($display("INSTR LB_LH_LW_LBU_LHU");)
                             end
-                            /* LBU */
-                            /* LHU */
                             /* SB */
                             /* SH */
                             /* SW */
@@ -690,6 +684,7 @@ module leiwand_rv32_core
             cyc_out_reg <= 0;
             address_out_reg <= 0; //`MEM_WIDTH'h20000004;
             data_out_reg <= 0;
+            stb_out_reg <= 0;
         end
         else begin
             /* initialization */

@@ -146,19 +146,19 @@ module leiwand_rv32_core_tb();
         $finish;
     end 
 
-    initial begin
-        // $dumpfile("leiwand_rv32_soc_tb.vcd");
+    // initial begin
+    //     $dumpfile("leiwand_rv32_soc_tb.vcd");
 
-        // $dumpvars(0,leiwand_rv32_core_tb);
-        // for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
-        //     $dumpvars(0, cpu_core.x[i]);
-        // end
+    //     $dumpvars(0,leiwand_rv32_core_tb);
+    //     for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
+    //         $dumpvars(0, cpu_core.x[i]);
+    //     end
 
-        // for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-        //     $dumpvars(0, internal_rom.mem[i]);
-        // end
+    //     for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
+    //         $dumpvars(0, internal_rom.mem[i]);
+    //     end
 
-        // # 15000 $finish;
-    end
+    //     // # 15000 $finish;
+    // end
 
 endmodule 
