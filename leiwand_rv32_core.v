@@ -283,7 +283,7 @@ module leiwand_rv32_core
                                 OP_FENCE_FENCEI,
                                 OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
                                 OP_LB_LH_LW_LBU_LHU: begin
-                                    immediate <= bus_data_in[31:20];
+                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[31:20] };
                                 end
 
                                 /* B-type */
@@ -387,36 +387,32 @@ module leiwand_rv32_core
                             /* SW */
                             /* ADDI */
                             else if (is_ADDI) begin
-                                x[rd] <= ($signed(x[rs1]) + $signed(immediate[11:0]));
+                                x[rd] <= ($signed(x[rs1]) + $signed(immediate[31:0]));
                                 `debug($display("INSTR ADDI");)
                             end
                             /* SLTI */
                             else if (is_SLTI) begin
-                                x[rd] <= ($signed(x[rs1]) < $signed(immediate[11:0]));
+                                x[rd] <= ($signed(x[rs1]) < $signed(immediate[31:0]));
                                 `debug($display("INSTR SLTI");)
                             end
                             /* SLTIU */
                             else if (is_SLTIU) begin
-                                if(immediate[11]) x[rd] <= x[rs1] < ( immediate[31:0] | 32'hfffff000 );
-                                else x[rd] <= x[rs1] < immediate[31:0];
+                                x[rd] <= x[rs1] < immediate[31:0];
                                 `debug($display("INSTR SLTIU");)
                             end
                             /* XORI */
                             else if (is_XORI) begin
-                                if(immediate[11]) x[rd] <= x[rs1] ^ ( immediate[31:0] | 32'hfffff000 );
-                                else x[rd] <= (x[rs1] ^ immediate[31:0]);
+                                x[rd] <= (x[rs1] ^ immediate[31:0]);
                                 `debug($display("INSTR XORI");)
                             end
                             /* ORI */
                             else if (is_ORI) begin
-                                if(immediate[11]) x[rd] <= x[rs1] | ( immediate[31:0] | 32'hfffff000 );
-                                else x[rd] <= (x[rs1] | immediate[31:0]);
+                                x[rd] <= (x[rs1] | immediate[31:0]);
                                 `debug($display("INSTR ORI");)
                             end
                             /* ANDI */
                             else if (is_ANDI) begin
-                                if(immediate[11]) x[rd] <= x[rs1] & ( immediate[31:0] | 32'hfffff000 );
-                                else x[rd] <= (x[rs1] & immediate[31:0]);
+                                x[rd] <= (x[rs1] & immediate[31:0]);
                                 `debug($display("INSTR ANDI");)
                             end
                             /* SLLI */
@@ -447,7 +443,7 @@ module leiwand_rv32_core
                             end
                             /* SLL */
                             else if (is_SLL) begin
-                                x[rd] <= (x[rs1] << (x[rs2_shamt] & 'h1F));
+                                x[rd] <= (x[rs1] << x[rs2_shamt][4:0]);
                                 `debug($display("INSTR SLL");)
                             end
                             /* SLT */
@@ -467,12 +463,12 @@ module leiwand_rv32_core
                             end                            
                             /* SRL */
                             else if (is_SRL) begin
-                                x[rd] <= (x[rs1] >> (x[rs2_shamt] & 'h1F));
+                                x[rd] <= (x[rs1] >> x[rs2_shamt][4:0]);
                                 `debug($display("INSTR SRL");)
                             end
                             /* SRA */
                             else if (is_SRA) begin
-                                x[rd] <= ($signed(x[rs1]) >>> (x[rs2_shamt] & 'h1F));
+                                x[rd] <= ($signed(x[rs1]) >>> x[rs2_shamt][4:0]);
                                 `debug($display("INSTR SRA");)
                             end
                             /* OR */
