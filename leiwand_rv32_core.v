@@ -213,52 +213,56 @@ module leiwand_rv32_core
 
                             pc <= pc + 4;
 
-                            /* U-Type instruction */
-                            if ( (bus_data_in[6:0] == OP_LUI) || (bus_data_in[6:0] == OP_AUIPC) ) begin
-                                rd[4:0] <= bus_data_in[11:7];
-                                immediate <= bus_data_in[31:12];
-                            end
+                            case(bus_data_in[6:0])
 
-                            /* R-Type instruction */
-                            else if ( (bus_data_in[6:0] == OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND) ) begin
-                                rs1[4:0] <= bus_data_in[19:15];
-                                rs2_shamt[4:0] <= bus_data_in[24:20];
-                                rd[4:0] <= bus_data_in[11:7];
-                            end
+                                /* R-type */
+                                OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND: begin
+                                    rs1[4:0] <= bus_data_in[19:15];
+                                    rs2_shamt[4:0] <= bus_data_in[24:20];
+                                    rd[4:0] <= bus_data_in[11:7];
+                                end
 
-                            /* I-Type instruction */
-                            else if ( (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) || 
-                                      (bus_data_in[6:0] == OP_JALR) || 
-                                      (bus_data_in[6:0] == OP_FENCE_FENCEI) ||
-                                      (bus_data_in[6:0] == OP_FENCE_FENCEI) ||
-                                      (bus_data_in[6:0] == OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI) ||
-                                      (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ) begin
-                                rs1[4:0] <= bus_data_in[19:15];
-                                rs2_shamt[4:0] <= bus_data_in[24:20];
-                                rd[4:0] <= bus_data_in[11:7];
-                                immediate <= bus_data_in[31:20];
+                                /* I-type */
+                                OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI, 
+                                OP_JALR,
+                                OP_FENCE_FENCEI,
+                                OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
+                                OP_LB_LH_LW_LBU_LHU : begin
+                                    rs1[4:0] <= bus_data_in[19:15];
+                                    rs2_shamt[4:0] <= bus_data_in[24:20];
+                                    rd[4:0] <= bus_data_in[11:7];
+                                    immediate <= bus_data_in[31:20];
 
-                                is_load_store_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
-                            end
+                                    is_load_store_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
+                                end
 
-                            /* B-Type instruction */
-                            else if (bus_data_in[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) begin
-                                rs1[4:0] <= bus_data_in[19:15];
-                                rs2_shamt[4:0] <= bus_data_in[24:20];
-                                immediate <= ( (bus_data_in[31] << 12) | 
-                                               (bus_data_in[7] << 11) | 
-                                               (bus_data_in[30:25] << 5) | 
-                                               (bus_data_in[11:8] << 1) );
-                            end
+                                /* B-type */
+                                OP_BEQ_BNE_BLT_BGE_BLTU_BGEU: begin
+                                    rs1[4:0] <= bus_data_in[19:15];
+                                    rs2_shamt[4:0] <= bus_data_in[24:20];
+                                    immediate <= ( (bus_data_in[31] << 12) | 
+                                                (bus_data_in[7] << 11) | 
+                                                (bus_data_in[30:25] << 5) | 
+                                                (bus_data_in[11:8] << 1) );
+                                end
 
-                            /* J-Type instruction */
-                            else if (bus_data_in[6:0] == OP_JAL) begin
-                                rd[4:0] <= bus_data_in[11:7];
-                                immediate <= ( (bus_data_in[31] << 20) | 
-                                               (bus_data_in[19:12] << 12) | 
-                                               (bus_data_in[20] << 11) | 
-                                               (bus_data_in[30:21] << 1) );
-                            end
+                                /* U-type */
+                                OP_LUI,
+                                OP_AUIPC: begin
+                                    rd[4:0] <= bus_data_in[11:7];
+                                    immediate <= bus_data_in[31:12];
+                                end
+
+                                /* J-type */
+                                OP_JAL: begin
+                                    rd[4:0] <= bus_data_in[11:7];
+                                    immediate <= ( (bus_data_in[31] << 20) | 
+                                                (bus_data_in[19:12] << 12) | 
+                                                (bus_data_in[20] << 11) | 
+                                                (bus_data_in[30:21] << 1) );
+                                end
+
+                            endcase
 
                             instruction <= bus_data_in;
                             cpu_stage <= STAGE_INSTR_EXECUTE;
