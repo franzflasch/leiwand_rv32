@@ -32,17 +32,30 @@ endmodule
 module leiwandrv32_soc_hx8k();
 `else
 module leiwandrv32_soc_hx8k(
-	CLK,
-	RST,
-    LED1,
-    LED2
+	input CLK,
+	input RST,
+    output LED1,
+    output LED2,
+    output flash_csb,
+	output flash_clk,
+	inout  flash_io0,
+	inout  flash_io1,
+	inout  flash_io2,
+	inout  flash_io3
 );
 `endif
-    parameter MEMORY_SIZE = 8;
+    parameter RAM_SIZE = 8;
+    parameter FLASH_SIZE = `MEM_WIDTH'h400000;
 
 `ifdef TESTBENCH_MODE
     reg CLK = 0;
     reg RST = 0;
+    wire flash_csb;
+    wire flash_clk;
+    wire flash_io0;
+    wire flash_io1;
+    wire flash_io2;
+    wire flash_io3;
     wire LED1;
     wire LED2;
 
@@ -60,29 +73,31 @@ module leiwandrv32_soc_hx8k(
         RST=1;
     end
 
+    integer i;
     initial begin
         $dumpfile("leiwand_rv32_soc_hx8k_tb.vcd");
         $dumpvars(0, leiwandrv32_soc_hx8k);
 
-        // for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
-        //     $dumpvars(0, cpu_core.x[i]);
-        // end
+        for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
+            $dumpvars(0, cpu_core.x[i]);
+        end
 
-        // for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
+        // for (i = 0; i < RAM_SIZE; i = i + 1) begin
         //     $dumpvars(0, internal_rom.mem[i]);
         // end
 
         # 150000 $finish;
     end
-
-`else
-    input CLK;
-    input RST;
-    output LED1;
-    output LED2;
 `endif
 
     wire system_clock;
+
+	reg [5:0] reset_cnt = 0;
+	wire resetn = &reset_cnt;
+
+	always @(posedge system_clock) begin
+		reset_cnt <= reset_cnt + !resetn;
+	end
 
     wire mem_valid;
     wire mem_ready;
@@ -93,10 +108,10 @@ module leiwandrv32_soc_hx8k(
 
     clk_divn #(.WIDTH(32), .N(8)) slow_clk(CLK, system_clock);
 
-    leiwand_rv32_core
+    leiwand_rv32_core # (.PC_START_VAL(`MEM_WIDTH'h100000))
         cpu_core (
             system_clock, 
-            !RST,
+            !resetn,
 
             mem_valid,
             mem_ready,
@@ -108,20 +123,82 @@ module leiwandrv32_soc_hx8k(
             LED1
     );
 
+
+    wire ram_ready;
+    wire [(`MEM_WIDTH-1):0] ram_rdata;
+
 	simple_mem #(
-		.WORDS(MEMORY_SIZE)
-	) internal_rom (
+		.WORDS(RAM_SIZE)
+	) internal_ram (
 		.clk(system_clock),
-        .rst(!RST),
-        .valid(mem_valid),
-        .ready(mem_ready),
+        .rst(!resetn),
+        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < `MEM_WIDTH'h20400000 + (4*RAM_SIZE))),
+        .ready(ram_ready),
 		.wen(mem_wen),
 		.addr(mem_addr[31:0]),
 		.wdata(mem_data_cpu_out),
-		.rdata(mem_data_cpu_in)
+		.rdata(ram_rdata)
 	);
 
+    // assign mem_ready = ram_ready;
+	// assign mem_data_cpu_in = ram_ready ? ram_rdata : 32'h 0000_0000;
+
+	wire flash_io0_oe, flash_io0_do, flash_io0_di;
+	wire flash_io1_oe, flash_io1_do, flash_io1_di;
+	wire flash_io2_oe, flash_io2_do, flash_io2_di;
+	wire flash_io3_oe, flash_io3_do, flash_io3_di;
+
+`ifndef TESTBENCH_MODE
+	SB_IO #(
+		.PIN_TYPE(6'b 1010_01),
+		.PULLUP(1'b 0)
+	) flash_io_buf [3:0] (
+		.PACKAGE_PIN({flash_io3, flash_io2, flash_io1, flash_io0}),
+		.OUTPUT_ENABLE({flash_io3_oe, flash_io2_oe, flash_io1_oe, flash_io0_oe}),
+		.D_OUT_0({flash_io3_do, flash_io2_do, flash_io1_do, flash_io0_do}),
+		.D_IN_0({flash_io3_di, flash_io2_di, flash_io1_di, flash_io0_di})
+	);
+`endif
+
+    wire spimem_ready;
+    wire [(`MEM_WIDTH-1):0] spimem_rdata;
+    wire [(`MEM_WIDTH-1):0] spimemio_cfgreg_do;
+
+	spimemio spimemio (
+		.clk    (system_clock),
+		.resetn (resetn),
+		.valid  (mem_valid && (mem_addr >= `MEM_WIDTH'h100000) && (mem_addr < `MEM_WIDTH'h100000 + (4*FLASH_SIZE))),
+		.ready  (spimem_ready),
+		.addr   (mem_addr[23:0]),
+		.rdata  (spimem_rdata),
+
+		.flash_csb    (flash_csb   ),
+		.flash_clk    (flash_clk   ),
+
+		.flash_io0_oe (flash_io0_oe),
+		.flash_io1_oe (flash_io1_oe),
+		.flash_io2_oe (flash_io2_oe),
+		.flash_io3_oe (flash_io3_oe),
+
+		.flash_io0_do (flash_io0_do),
+		.flash_io1_do (flash_io1_do),
+		.flash_io2_do (flash_io2_do),
+		.flash_io3_do (flash_io3_do),
+
+		.flash_io0_di (flash_io0_di),
+		.flash_io1_di (flash_io1_di),
+		.flash_io2_di (flash_io2_di),
+		.flash_io3_di (flash_io3_di),
+
+		.cfgreg_we(4'b 0000),
+		.cfgreg_di(mem_data_cpu_out),
+		.cfgreg_do(spimemio_cfgreg_do)
+	);
+
+    assign mem_ready = ram_ready | spimem_ready;
+	assign mem_data_cpu_in = ram_ready ? ram_rdata : spimem_ready ? spimem_rdata : 32'h 0000_0000;
+
     //assign LED1 = wb_cyc; //cpu_core.x[10][0];
-    //assign LED2 = wb_stb; //cpu_core.x[11][0];
+    assign LED2 = spimem_ready; //cpu_core.x[11][0];
 
 endmodule

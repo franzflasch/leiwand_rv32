@@ -10,8 +10,6 @@ module leiwand_rv32_core_tb();
     reg clk = 0;
     reg reset = 0;
 
-    reg [(`MEM_WIDTH-1):0] pc;
-
     wire debug_led;
 
     wire mem_valid;
@@ -43,7 +41,7 @@ module leiwand_rv32_core_tb();
 		.clk(clk),
         .rst(reset),
 
-        .valid(mem_valid),
+        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < `MEM_WIDTH'h20400000 + (4*MEMORY_SIZE))),
         .ready(mem_ready),
 		.wen(mem_wen),
 		.addr(mem_addr[31:0]),

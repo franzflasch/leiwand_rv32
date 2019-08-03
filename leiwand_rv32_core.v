@@ -11,7 +11,9 @@
   `define debug(debug_command)
 `endif
 
-module leiwand_rv32_core
+module leiwand_rv32_core # (
+        parameter PC_START_VAL = `MEM_WIDTH'h20400000 /* HiFive1 Value */
+    )
     (
         input i_clk,
         input i_rst,
@@ -35,8 +37,6 @@ module leiwand_rv32_core
     localparam STAGE_INSTR_ACCESS = 4;
     localparam STAGE_INSTR_WRITEBACK = 5;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
-
-    localparam PC_START_VAL = `MEM_WIDTH'h20400000;
 
     /* RISC-V Registers x0-x31 */
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
@@ -161,7 +161,7 @@ module leiwand_rv32_core
             x[2]  <= 0;
             x[3]  <= 0;
             x[4]  <= 0;
-            x[5]  <= 32'h20400000; // This is only because of comparison with qemu
+            x[5] <= PC_START_VAL;
             x[6]  <= 0;
             x[7]  <= 0;
             x[8]  <= 0;
@@ -207,7 +207,7 @@ module leiwand_rv32_core
         else begin
 
             /* New data ready */
-            if(i_mem_ready && mem_valid) begin
+            if(i_mem_ready && mem_valid && mem_access) begin
                 mem_data_in <= i_mem_data;
                 mem_access <= 0;
                 mem_valid <= 0;
@@ -492,7 +492,7 @@ module leiwand_rv32_core
     assign alu_is_sr_op = (is_SRA | is_SRAI | is_SRL | is_SRLI);
     assign alu_is_sub_op = (is_SUB);
 
-    assign debug_led = x[10][0];
+    assign debug_led = x[30][0];
 
     assign o_mem_valid = mem_valid;
     assign o_mem_addr = mem_addr_out;
