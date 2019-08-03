@@ -99,7 +99,7 @@ module leiwand_rv32_core_tb();
 
     initial begin
 
-        file = $fopenr("jal_leiwandrv32.bin");
+        file = $fopenr(`BINARY_TO_LOAD);
 
         file_size = $fseek(file, 0, `SEEK_END); /* End of file */
         file_size = $ftell(file);
@@ -121,7 +121,7 @@ module leiwand_rv32_core_tb();
         #5
         reset=0;
 
-        for (i = 0; i < 250; i++) begin
+        for (i = 0; i < 100; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_EXECUTE);
 
