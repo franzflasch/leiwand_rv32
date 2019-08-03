@@ -8,6 +8,61 @@ This is actually an educational project for me. I wanted to learn a bit about FP
 The CPU is neither size nor performance optimized, but afterall it fits into an iCE40hx8k FPGA, altough not nearly as good as
 the picorv32 from Clifford Wolf.
 
+Currently only a subset of the RV32I ISA is implemented. The following instructions are currently implemented:
+
+* lui
+* auipc
+* jal
+* jalr
+* beq
+* bne
+* blt
+* bge
+* bltu
+* bgeu
+* lb
+* lh
+* lw
+* lbu
+* lhu
+* sb
+* sh
+* sw
+* addi
+* slti
+* sltiu
+* xori
+* ori
+* andi
+* slli
+* srli
+* srai
+* add
+* sub
+* sll
+* slt
+* sltu
+* xor
+* srl
+* sra
+* or
+* and
+
+Those are the most important instructions for an risc-v core. Currently not implemented:
+
+* fence
+* fence_i
+* ecall
+* ebreak
+* csrrw
+* csrrs
+* csrrc
+* csrrwi
+* csrrsi
+* csrrci
+
+However for an absolute minimal RV32I CPU they are not needed anyway.
+
 ## Testbench and CPU core verification
 
 The testbench is in leiwand_rv32_soc.v. This should be used for development.
