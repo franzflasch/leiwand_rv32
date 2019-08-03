@@ -227,7 +227,7 @@ module leiwand_rv32_core
                                 OP_JALR,
                                 OP_FENCE_FENCEI,
                                 OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
-                                OP_LB_LH_LW_LBU_LHU : begin
+                                OP_LB_LH_LW_LBU_LHU: begin
                                     rs1[4:0] <= bus_data_in[19:15];
                                     rs2_shamt[4:0] <= bus_data_in[24:20];
                                     rd[4:0] <= bus_data_in[11:7];
@@ -240,10 +240,7 @@ module leiwand_rv32_core
                                 OP_BEQ_BNE_BLT_BGE_BLTU_BGEU: begin
                                     rs1[4:0] <= bus_data_in[19:15];
                                     rs2_shamt[4:0] <= bus_data_in[24:20];
-                                    immediate <= ( (bus_data_in[31] << 12) | 
-                                                (bus_data_in[7] << 11) | 
-                                                (bus_data_in[30:25] << 5) | 
-                                                (bus_data_in[11:8] << 1) );
+                                    immediate <= { bus_data_in[31], bus_data_in[7], bus_data_in[30:25], bus_data_in[11:8], 1'b0 };
                                 end
 
                                 /* U-type */
@@ -256,10 +253,7 @@ module leiwand_rv32_core
                                 /* J-type */
                                 OP_JAL: begin
                                     rd[4:0] <= bus_data_in[11:7];
-                                    immediate <= ( (bus_data_in[31] << 20) | 
-                                                (bus_data_in[19:12] << 12) | 
-                                                (bus_data_in[20] << 11) | 
-                                                (bus_data_in[30:21] << 1) );
+                                    immediate <= { bus_data_in[31], bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
                                 end
 
                             endcase
