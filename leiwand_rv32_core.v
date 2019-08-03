@@ -132,7 +132,7 @@ module leiwand_rv32_core
     reg [4:0] rd;
     reg [(`MEM_WIDTH-1):0] immediate;
 
-    reg is_load_store_instruction;
+    reg is_load_instruction;
 
     /* CPU Core */
     always @(posedge i_clk) begin
@@ -184,7 +184,7 @@ module leiwand_rv32_core
             /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
 
-            is_load_store_instruction <= 0;
+            is_load_instruction <= 0;
 
         end
         else begin
@@ -217,6 +217,8 @@ module leiwand_rv32_core
                             rs2_shamt[4:0] <= bus_data_in[24:20];
                             rd[4:0] <= bus_data_in[11:7];
 
+                            is_load_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
+
                             case(bus_data_in[6:0])
 
                                 // /* R-type */
@@ -233,7 +235,6 @@ module leiwand_rv32_core
                                 OP_ECALL_EBREAK_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI,
                                 OP_LB_LH_LW_LBU_LHU: begin
                                     immediate <= bus_data_in[31:20];
-                                    is_load_store_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
                                 end
 
                                 /* B-type */
@@ -531,7 +532,7 @@ module leiwand_rv32_core
                                 /* Unknown instruction */
                             end
 
-                            cpu_stage <= (is_load_store_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_FETCH;
+                            cpu_stage <= (is_load_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_FETCH;
                         end
 
                         STAGE_INSTR_ACCESS: begin
@@ -602,7 +603,7 @@ module leiwand_rv32_core
                                 `debug($display("Unknown access instruction! %x", instruction);)
                                 /* Unknown instruction */
                             end
-                            is_load_store_instruction <= 0;
+                            is_load_instruction <= 0;
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
 
