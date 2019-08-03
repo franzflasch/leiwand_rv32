@@ -449,7 +449,7 @@ module leiwand_rv32_core
 
                             if (is_LUI) x[rd] <= immediate;
                             if (is_AUIPC) x[rd] <= alu_result_addu;
-                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
+                            if (is_JAL | is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
                             if ( (is_BEQ && alu_branch_eq) || 
                                  (is_BNE && !alu_branch_eq) || 
                                  (is_BLT && !alu_branch_ge) ||
