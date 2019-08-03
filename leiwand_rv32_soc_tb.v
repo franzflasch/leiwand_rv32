@@ -94,7 +94,8 @@ module leiwand_rv32_core_tb();
 
     initial begin
         for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            internal_sram.mem[i] <= `MEM_WIDTH'h42 + i;
+            internal_sram.mem[i] = `MEM_WIDTH'h42 + i;
+            $display ("internal ram %d: %x", i, internal_sram.mem[i]);
         end
 
         $display ("clk: %d", clk);

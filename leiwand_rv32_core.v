@@ -44,6 +44,8 @@ module leiwand_rv32_core
 
 
     /* RV32I Base instructions */
+    parameter OP_LUI = 7'b0110111;
+
     parameter OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI = 7'b0010011;
     parameter FUNC3_ADDI = 3'b000;
     parameter FUNC3_SLTI = 3'b010;
@@ -57,6 +59,14 @@ module leiwand_rv32_core
     parameter FUNC7_SLLI = 7'b0000000;
     parameter FUNC7_SRLI = 7'b0000000;
     parameter FUNC7_SRAI = 7'b0100000;
+
+    parameter OP_BEQ_BNE_BLT_BGE_BLTU_BGEU = 7'b1100011;
+    parameter FUNC3_BEQ = 3'b000;
+    parameter FUNC3_BNE = 3'b001;
+    parameter FUNC3_BLT = 3'b100;
+    parameter FUNC3_BGE = 3'b101;
+    parameter FUNC3_BLTU = 3'b110;
+    parameter FUNC3_BGEU = 3'b111;
 
     /* opcode registers 1 */
     reg [4:0] rs1;
@@ -126,17 +136,37 @@ module leiwand_rv32_core
                             bus_data_out <= 0;
                             bus_access <= 1;
                             bus_read_write <= 0;
+
+                            // instruction <= 0;
+                            // rs1 <= 0;
+                            // rs2_shamt <= 0;
+                            // rd <= 0;
+                            // immediate <= 0;
+
+                            pc <= pc + 4;
+
                             cpu_stage <= STAGE_INSTR_DECODE;
                         end
 
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
-                            /* ADDI */
+                            /* U-Type instruction */
+                            if (bus_data_in[6:0] == OP_LUI) begin
+                                rd[4:0] <= bus_data_in[11:7];
+                                immediate <= bus_data_in[31:12];
+                            end                            
+                            /* I-Type instruction */
                             if (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) begin
                                 rs1[4:0] <= bus_data_in[19:15];
                                 rs2_shamt[4:0] <= bus_data_in[24:20];
                                 rd[4:0] <= bus_data_in[11:7];
                                 immediate <= bus_data_in[31:20];
+                            end
+                            /* B-Type instruction */
+                            else if (bus_data_in[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) begin
+                                rs1[4:0] <= bus_data_in[19:15];
+                                rs2_shamt[4:0] <= bus_data_in[24:20];
+                                immediate <= ( (bus_data_in[31] << 12) | (bus_data_in[7] << 11) | (bus_data_in[30:25] << 5) | (bus_data_in[11:8] << 1) );
                             end
 
                             instruction <= bus_data_in;
@@ -144,8 +174,54 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_EXECUTE: begin
+                            /* LUI */
+                            if ( (instruction[6:0] == OP_LUI) ) begin
+                                x[rd] <= (immediate[11:0] << 12);
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* AUIPC */
+                            /* JAL */
+                            /* JALR */
+                            /* BEQ */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BEQ) ) begin
+                                if(rs1 == rs2_shamt) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* BNE */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BNE) ) begin
+                                if(rs1 != rs2_shamt) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* BLT */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLT) ) begin
+                                if($signed(rs1) < $signed(rs2_shamt)) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* BGE */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGE) ) begin
+                                if($signed(rs1) >= $signed(rs2_shamt)) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* BLTU */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLTU) ) begin
+                                if(rs1 < rs2_shamt) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* BGEU */
+                            else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGEU) ) begin
+                                if(rs1 >= rs2_shamt) pc <= ( (pc - 4) + $signed(immediate[12:0]) );
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            /* LB */
+                            /* LH */
+                            /* LW */
+                            /* LBU */
+                            /* LHU */
+                            /* SB */
+                            /* SH */
+                            /* SW */
                             /* ADDI */
-                            if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ADDI) ) begin
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ADDI) ) begin
                                 x[rd] <= $signed(immediate[11:0]) + $signed(x[rs1]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
@@ -194,13 +270,31 @@ module leiwand_rv32_core
                                 x[rd] <= $signed(x[rs1]) >> rs2_shamt[4:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* ADD */
+                            /* SUB */
+                            /* SLL */
+                            /* SLT */
+                            /* SLTU */
+                            /* XOR */
+                            /* SRL */
+                            /* SRA */
+                            /* OR */
+                            /* AND */
+                            /* FENCE */
+                            /* FENCE.I */
+                            /* ECALL */
+                            /* EBREAK */
+                            /* CSRRW */
+                            /* CSRRS */
+                            /* CSRRC */
+                            /* CSRRWI */
+                            /* CSRRSI */
+                            /* CSRRCI */
                             else begin 
-                                $display("Unknown instruction!");
+                                $display("Unknown instruction! %x", instruction);
                                 /* Unknown instruction */
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
-
-                            pc <= pc + 4;
                         end
 
                         STAGE_INSTR_ACCESS: begin
