@@ -224,38 +224,8 @@ module leiwand_rv32_core
             next_pc <= PC_START_VAL;
             instruction <= 0;
 
-            /* zero out opcode registers */
-            rs1 <= 0;
-            rs2_shamt <= 0;
-            rd <= 0;
-            immediate <= 0;
-
             /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
-
-            {is_LUI, 
-             is_AUIPC, 
-             is_JAL, is_JALR, 
-             is_BEQ, is_BNE, is_BLT, is_BGE, is_BLTU, is_BGEU, 
-             is_ADDI, is_SLTI, is_SLTIU, is_XORI, is_ORI, is_ANDI, is_SLLI, is_SRLI, is_SRAI, 
-             is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND,
-             is_LB, is_LH, is_LW, is_LBU, is_LHU,
-             is_SB, is_SH, is_SW } <= 0;
-
-            {alu_result_addu, 
-             alu_result_add, 
-             alu_result_sub, 
-             alu_result_eq, 
-             alu_result_ge, 
-             alu_branch_geu,
-             alu_result_xor, 
-             alu_result_or, 
-             alu_result_and,
-             alu_result_sll, 
-             alu_result_srl, 
-             alu_result_sra, 
-             alu_op1, alu_op2} <= 0;
-            {alu_branch_eq, alu_branch_ge, alu_branch_geu, alu_branch_op1, alu_branch_op2} <= 0;
 
             bus_access <= 0;
             bus_ready <= 0;
