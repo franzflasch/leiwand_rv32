@@ -274,33 +274,29 @@ module leiwand_rv32_core
                             /* JAL */
                             else if (instruction[6:0] == OP_JAL) begin
                                 x[rd] <= pc;
-                                if(immediate[20]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFF00000) );
-                                else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                pc <= (pc - 4) + { {11{immediate[20]}}, immediate[20:0] };
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR JAL");)
                             end
                             /* JALR */
                             else if ( (instruction[6:0] == OP_JALR) && (instruction[14:12] == FUNC3_JALR) ) begin
                                 x[rd] <= pc;
-                                if(immediate[11]) pc <= ( ( x[rs1] + $signed(immediate[31:0] | 32'hFFFFF000) ) & 32'hFFFFFFFE);
-                                else pc <= ( ( x[rs1] + $signed(immediate[31:0]) ) & 32'hFFFFFFFE);
+                                pc <= ( x[rs1] + { {20{immediate[11]}}, immediate[11:0] } & 32'hFFFFFFFE );
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR JALR");)
                             end
                             /* BEQ */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BEQ) ) begin
-                                if($signed(x[rs1]) == $signed(x[rs2_shamt])) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                if(x[rs1] == x[rs2_shamt]) begin
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BNE) ) begin
-                                if($signed(x[rs1]) != $signed(x[rs2_shamt])) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                if(x[rs1] != x[rs2_shamt]) begin
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BNE");)
@@ -308,8 +304,7 @@ module leiwand_rv32_core
                             /* BLT */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLT) ) begin
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BLT");)
@@ -317,8 +312,7 @@ module leiwand_rv32_core
                             /* BGE */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGE) ) begin
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BGE");)
@@ -326,8 +320,7 @@ module leiwand_rv32_core
                             /* BLTU */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BLTU) ) begin
                                 if(x[rs1] < x[rs2_shamt]) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BLTU");)
@@ -335,8 +328,7 @@ module leiwand_rv32_core
                             /* BGEU */
                             else if ( (instruction[6:0] == OP_BEQ_BNE_BLT_BGE_BLTU_BGEU) && (instruction[14:12] == FUNC3_BGEU) ) begin
                                 if(x[rs1] >= x[rs2_shamt]) begin
-                                    if(immediate[12]) pc <= ( (pc - 4) + $signed(immediate[31:0] | 32'hFFFFF000) );
-                                    else pc <= (pc - 4) + $signed(immediate[31:0]);
+                                    pc <= ( (pc -4) + { {19{immediate[12]}}, immediate[12:0] } );
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                                 `debug($display("INSTR BGEU");)
