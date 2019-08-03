@@ -1,0 +1,4 @@
+set_io CLK J3
+set_io RST K11
+set_io LED1 M12
+set_io LED2 R16
