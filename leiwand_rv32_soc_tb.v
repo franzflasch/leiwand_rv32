@@ -80,7 +80,7 @@ module leiwand_rv32_core_tb();
     );
 
     assign wb_stb_internal_sram = wb_stb &&  ( (wb_addr >= `MEM_WIDTH'h10000000) && (wb_addr < `MEM_WIDTH'h10000000 + (4*MEMORY_SIZE)) );
-    assign wb_stb_internal_rom = wb_stb && ( (wb_addr >= `MEM_WIDTH'h20000000) && (wb_addr < `MEM_WIDTH'h20000000 + (4*MEMORY_SIZE)) );
+    assign wb_stb_internal_rom = wb_stb && ( (wb_addr >= `MEM_WIDTH'h20400000) && (wb_addr < `MEM_WIDTH'h20400000 + (4*MEMORY_SIZE)) );
     assign wb_data_in = wb_data_in_rom | wb_data_in_sram;
     assign wb_stall = wb_stall_rom | wb_stall_sram;
     assign wb_ack = wb_ack_rom | wb_ack_sram;
@@ -121,7 +121,7 @@ module leiwand_rv32_core_tb();
         #5
         reset=0;
 
-        for (i = 0; i < 100; i++) begin
+        for (i = 0; i < 250; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_EXECUTE);
 
