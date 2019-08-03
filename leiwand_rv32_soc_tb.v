@@ -101,8 +101,14 @@ module leiwand_rv32_core_tb();
     end
     
     integer i;
-    initial
-    begin
+
+    initial begin
+        for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
+            internal_sram.mem[i] <= `MEM_WIDTH'h42 + i;
+        end
+    end 
+
+    initial begin
         $dumpfile("leiwand_rv32_soc_tb.vcd");
         $dumpvars(0,leiwand_rv32_core_tb);
         for (i = 0; i < `NR_RV_REGS; i = i + 1) begin

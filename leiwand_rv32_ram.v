@@ -2,6 +2,8 @@
 
 `include "helper.v"
 
+//`define INIT_RAM_TOZERO
+
 module leiwand_rv32_ram # (
         parameter MEM_WIDTH = 8,
         parameter MEM_SIZE = 32,
@@ -33,7 +35,9 @@ module leiwand_rv32_ram # (
 
     reg [`HIGH_BIT_TO_FIT(STATE_FINISH):0] internal_state;
 
+`ifdef INIT_RAM_TOZERO
     reg [`HIGH_BIT_TO_FIT(MEM_SIZE-1):0] mem_index;
+`endif
 
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -44,8 +48,9 @@ module leiwand_rv32_ram # (
 
             internal_state <= STATE_INIT;
 
-            /* for testing purposes */
+`ifdef INIT_RAM_TOZERO
             mem_index <= 0;
+`endif
         end
         else begin
             case (internal_state)
@@ -54,14 +59,17 @@ module leiwand_rv32_ram # (
                     stall_out <= 1;
                     tmp_stall <= 1;
                     data_out <= 0;
-
+`ifdef INIT_RAM_TOZERO
                     mem[mem_index] = 0;
                     mem_index = mem_index + 1;
                     if(mem_index >= (MEM_SIZE-2)) begin
-
                         /* switch to next state after initialization */
                         internal_state <= STATE_IDLE;
                     end
+`else
+                    internal_state <= STATE_IDLE;
+`endif
+
                 end
                 STATE_IDLE: begin
                     /* We will stall as soon as we are mentioned */
