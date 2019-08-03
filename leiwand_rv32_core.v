@@ -135,8 +135,6 @@ module leiwand_rv32_core
     parameter FUNC3_LBU = 3'b100;
     parameter FUNC3_LHU = 3'b101;
 
-    reg is_load_instruction;
-
     reg is_LUI;
     reg is_AUIPC;
     reg is_JAL;
@@ -219,8 +217,6 @@ module leiwand_rv32_core
             /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
 
-            is_load_instruction <= 0;
-
             {is_LUI, 
              is_AUIPC, 
              is_JAL, is_JALR, 
@@ -267,8 +263,6 @@ module leiwand_rv32_core
                             rs1[4:0] <= bus_data_in[19:15];
                             rs2_shamt[4:0] <= bus_data_in[24:20];
                             rd[4:0] <= bus_data_in[11:7];
-
-                            is_load_instruction <= (bus_data_in[6:0] == OP_LB_LH_LW_LBU_LHU) ? 1 : 0;
 
                             is_LUI <= (bus_data_in[6:0] == OP_LUI) ? 1 : 0;
                             is_AUIPC <= (bus_data_in[6:0] == OP_AUIPC) ? 1 : 0;
@@ -381,14 +375,14 @@ module leiwand_rv32_core
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
 
-                            if(is_load_instruction) begin
+                            if(is_LB | is_LH | is_LW | is_LBU | is_LHU) begin
                                 bus_addr <= ( $signed(x[rs1]) + $signed(immediate) );
                                 bus_data_out <= 0;
                                 bus_access <= 1;
                                 bus_read_write <= 0;
+                                cpu_stage <= STAGE_INSTR_ACCESS;
                             end
-
-                            cpu_stage <= (is_load_instruction) ? STAGE_INSTR_ACCESS : STAGE_INSTR_ALU_EXECUTE;
+                            else cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
 
                         STAGE_INSTR_ALU_EXECUTE: begin
@@ -431,15 +425,15 @@ module leiwand_rv32_core
                             end
                             if (is_LBU) begin
                                 case (bus_addr[1:0])
-                                    0: x[rd] <= {24'h000000,bus_data_in[7:0]};
-                                    1: x[rd] <= {24'h000000,bus_data_in[15:8]};
-                                    2: x[rd] <= {24'h000000,bus_data_in[23:16]};
-                                    3: x[rd] <= {24'h000000,bus_data_in[31:24]};
+                                    0: x[rd] <= bus_data_in[7:0];
+                                    1: x[rd] <= bus_data_in[15:8];
+                                    2: x[rd] <= bus_data_in[23:16];
+                                    3: x[rd] <= bus_data_in[31:24];
                                     default: x[rd] <= 0;
                                 endcase
                             end
                             if (is_LHU) begin
-                                x[rd] <= (bus_addr[1]) ? {16'h0000,bus_data_in[31:16]} : {16'h0000,bus_data_in[15:0]};
+                                x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
                             end
 
                             cpu_stage <= STAGE_INSTR_WRITEBACK;
@@ -556,13 +550,10 @@ module leiwand_rv32_core
         end
     end
 
-
-
     assign o_we = we_out_reg;
     assign o_stb = stb_out_reg;
     assign o_cyc = cyc_out_reg;
     assign o_addr = address_out_reg;
     assign o_data = data_out_reg;
-
 
 endmodule
