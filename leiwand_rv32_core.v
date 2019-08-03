@@ -33,8 +33,7 @@ module leiwand_rv32_core
     parameter STAGE_INSTR_DECODE = 1;
     parameter STAGE_INSTR_ALU_PREPARE = 2;
     parameter STAGE_INSTR_ALU_EXECUTE = 3;
-    parameter STAGE_INSTR_ACCESS = 4;
-    parameter STAGE_INSTR_WRITEBACK = 5;
+    parameter STAGE_INSTR_WRITEBACK = 4;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
     parameter PC_START_VAL = `MEM_WIDTH'h20400000;
@@ -414,7 +413,7 @@ module leiwand_rv32_core
 
                                 bus_read_write <= (is_SB | is_SH | is_SW) ? 1 : 0;
                                 bus_access <= 1;
-                                cpu_stage <= STAGE_INSTR_ACCESS;
+                                cpu_stage <= STAGE_INSTR_WRITEBACK;
                             end
                             else cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
@@ -436,39 +435,6 @@ module leiwand_rv32_core
                             alu_branch_eq <= (alu_branch_op1 == alu_branch_op2);
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
                             alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
-
-                            cpu_stage <= STAGE_INSTR_WRITEBACK;
-                        end
-
-                        STAGE_INSTR_ACCESS: begin
-
-                            if (is_LB) begin
-                                case (bus_addr[1:0])
-                                    0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
-                                    1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
-                                    2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
-                                    3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
-                                    default: x[rd] <= 0;
-                                endcase
-                            end
-                            if (is_LH) begin
-                                x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
-                            end
-                            if (is_LW) begin
-                                x[rd] <= bus_data_in;
-                            end
-                            if (is_LBU) begin
-                                case (bus_addr[1:0])
-                                    0: x[rd] <= bus_data_in[7:0];
-                                    1: x[rd] <= bus_data_in[15:8];
-                                    2: x[rd] <= bus_data_in[23:16];
-                                    3: x[rd] <= bus_data_in[31:24];
-                                    default: x[rd] <= 0;
-                                endcase
-                            end
-                            if (is_LHU) begin
-                                x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
-                            end
 
                             cpu_stage <= STAGE_INSTR_WRITEBACK;
                         end
@@ -505,6 +471,34 @@ module leiwand_rv32_core
                             if(is_SRA) begin x[rd] <= alu_result_sra; end
                             if(is_OR) begin x[rd] <= alu_result_or; end
                             if(is_AND) begin x[rd] <= alu_result_and; end
+
+                            if (is_LB) begin
+                                case (bus_addr[1:0])
+                                    0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
+                                    1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
+                                    2: x[rd] <= {{24{bus_data_in[23]}},bus_data_in[23:16]};
+                                    3: x[rd] <= {{24{bus_data_in[31]}},bus_data_in[31:24]};
+                                    default: x[rd] <= 0;
+                                endcase
+                            end
+                            if (is_LH) begin
+                                x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
+                            end
+                            if (is_LW) begin
+                                x[rd] <= bus_data_in;
+                            end
+                            if (is_LBU) begin
+                                case (bus_addr[1:0])
+                                    0: x[rd] <= bus_data_in[7:0];
+                                    1: x[rd] <= bus_data_in[15:8];
+                                    2: x[rd] <= bus_data_in[23:16];
+                                    3: x[rd] <= bus_data_in[31:24];
+                                    default: x[rd] <= 0;
+                                endcase
+                            end
+                            if (is_LHU) begin
+                                x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
+                            end
 
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
