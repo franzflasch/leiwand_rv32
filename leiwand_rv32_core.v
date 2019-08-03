@@ -131,7 +131,6 @@ module leiwand_rv32_core
 
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
-
                             /* ADDI */
                             if (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) begin
                                 rs1[4:0] <= bus_data_in[19:15];
@@ -145,7 +144,6 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_EXECUTE: begin
-
                             /* ADDI */
                             if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ADDI) ) begin
                                 x[rd] <= $signed(immediate[11:0]) + $signed(x[rs1]);
@@ -200,7 +198,6 @@ module leiwand_rv32_core
                                 /* Unknown instruction */
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
-
                         end
 
                         STAGE_INSTR_ACCESS: begin
