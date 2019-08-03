@@ -288,7 +288,7 @@ module leiwand_rv32_core
 
                                 /* B-type */
                                 OP_BEQ_BNE_BLT_BGE_BLTU_BGEU: begin
-                                    immediate <= { bus_data_in[31], bus_data_in[7], bus_data_in[30:25], bus_data_in[11:8], 1'b0 };
+                                    immediate <= { {20{bus_data_in[31]}}, bus_data_in[7], bus_data_in[30:25], bus_data_in[11:8], 1'b0 };
                                 end
 
                                 /* U-type */
@@ -299,7 +299,7 @@ module leiwand_rv32_core
 
                                 /* J-type */
                                 OP_JAL: begin
-                                    immediate <= { bus_data_in[31], bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
+                                    immediate <= { {11{bus_data_in[31]}}, bus_data_in[19:12], bus_data_in[20], bus_data_in[31:21], 1'b0 };
                                 end
 
                             endcase
@@ -322,7 +322,7 @@ module leiwand_rv32_core
                             /* JAL */
                             else if (is_JAL) begin
                                 x[rd] <= next_pc;
-                                next_pc <= pc + { {11{immediate[20]}}, immediate[20:0] };
+                                next_pc <= pc + immediate;
                                 `debug($display("INSTR JAL");)
                             end
                             /* JALR */
@@ -334,42 +334,42 @@ module leiwand_rv32_core
                             /* BEQ */
                             else if (is_BEQ) begin
                                 if(x[rs1] == x[rs2_shamt]) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BEQ");)
                             end
                             /* BNE */
                             else if (is_BNE) begin
                                 if(x[rs1] != x[rs2_shamt]) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BNE");)
                             end
                             /* BLT */
                             else if (is_BLT) begin
                                 if($signed(x[rs1]) < $signed(x[rs2_shamt])) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BLT");)
                             end
                             /* BGE */
                             else if (is_BGE) begin
                                 if($signed(x[rs1]) >= $signed(x[rs2_shamt])) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BGE");)
                             end
                             /* BLTU */
                             else if (is_BLTU) begin
                                 if(x[rs1] < x[rs2_shamt]) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BLTU");)
                             end
                             /* BGEU */
                             else if (is_BGEU) begin
                                 if(x[rs1] >= x[rs2_shamt]) begin
-                                    next_pc <= ( pc + { {19{immediate[12]}}, immediate[12:0] } );
+                                    next_pc <= ( pc + immediate );
                                 end
                                 `debug($display("INSTR BGEU");)
                             end
