@@ -123,7 +123,7 @@ module leiwand_rv32_core_tb();
 
         for (i = 0; i < 10000; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
-            wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_ALU_EXECUTE);
+            wait ((cpu_core.cpu_stage == cpu_core.STAGE_INSTR_ALU_EXECUTE) || (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_ACCESS));
 
             $display("\n");
             $display("cycle: %d", i);
