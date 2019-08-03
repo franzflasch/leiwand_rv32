@@ -2,16 +2,16 @@
 
 
 tests=(
-# lui
-# auipc
-# jal
-# jalr
+lui
+auipc
+jal
+jalr
 beq
 bne
 blt
 bge
-# bltu
-# bgeu
+bltu
+bgeu
 # lb
 # lh
 # lw
@@ -20,17 +20,17 @@ bge
 # #sb
 # #sh
 # #sw
-# addi
-# slti
-# sltiu
-# xori
-# ori
-# andi
-# slli
-# srli
-# srai
-# add
-# sub
+addi
+slti
+sltiu
+xori
+ori
+andi
+slli
+srli
+srai
+add
+sub
 # sll
 # slt
 # sltu
@@ -71,4 +71,9 @@ cd $cur_dir
 for i in "${tests[@]}"
 do
     ./convert_leiwandrv32_output.sh leiwandrv32_traces/${i}_trace.txt > leiwandrv32_register_states/${i}_states.txt
+done
+
+for i in "${tests[@]}"
+do
+    cmp --silent leiwandrv32_register_states/${i}_states.txt qemu_register_states/${i}_states.txt && echo "### SUCCESS: ${i}_states.txt Are Identical! ###" || echo "### ERROR: ${i}_states.txt Are Different! ###"
 done
