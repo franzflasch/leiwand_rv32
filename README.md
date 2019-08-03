@@ -81,6 +81,6 @@ sudo iceprog -o 1M blinky.bin
 ```
 
 The blinky is written in assembler. A full featured C example should also be possible, however the current design already uses ~75% of the iCE40hx8k FPGA,
-and the internal RAM is only 40 Bytes (8*4 Bytes or 8*32 Bits). So there is more optimization work needed to get an actual usable C environment.
+and the internal RAM is only 40 Bytes (8x4 Bytes or 8x32 Bits). So there is more optimization work needed to get an actual usable C environment.
 
 License is GPLv3, feel free to send me PRs.
