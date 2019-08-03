@@ -37,7 +37,7 @@ This will produce all register states needed to test and verify the leiwand_rv32
 ```
 
 ## Synthesizing:
-There is also a design which can be synthesized into a iCE40 FPGA using the opensource toolchain Yosys.
+There is also a design which can be synthesized into an iCE40 FPGA using the opensource toolchain Yosys.
 
 Tools needed:
 * yosys
@@ -60,11 +60,11 @@ testbench version of the design just do:
 
 ## Firmware
 
-When building the iCE40 design, the firmware uses the same spi flash used for the bitstream. Entry point is at 0x100000.
+When building the iCE40 design, the firmware uses the same spi flash as used for the bitstream. Entry point is at 0x100000.
 The spimemio.v design is stolen from Clifford Wolf (thanks!). This entrypoint address can not be changed at the toplevel file,
 as the design internally searches the first data entry at 0x100000.
 
-There is a simple blinky firmware in firmware folder. To build it issue:
+There is a simple blinky firmware in the firmware folder. To build it issue:
 
 ```
 riscv32-none-elf-gcc -march=rv32i -Wl,-Bstatic,--strip-debug -ffreestanding -nostdlib -o blinky.elf blinky.S
