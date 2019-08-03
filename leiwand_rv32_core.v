@@ -32,8 +32,9 @@ module leiwand_rv32_core
     /* RISC-V Registers x0-x31 */
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
     reg [(`MEM_WIDTH-1):0] pc;
-    reg [(`MEM_WIDTH-1):0] next_instruction;
+    reg [(`MEM_WIDTH-1):0] instruction;
 
+    /* bus access variables */
     reg bus_read_write;
     reg bus_ready;
     reg bus_access;
@@ -42,9 +43,26 @@ module leiwand_rv32_core
     reg [(`MEM_WIDTH-1):0] bus_addr;
 
 
-    /* testing purposes */
-    reg [`HIGH_BIT_TO_FIT(127):0] i;
+    /* RV32I Base instructions */
+    parameter OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI = 7'b0010011;
+    parameter FUNC3_ADDI = 3'b000;
+    parameter FUNC3_SLTI = 3'b010;
+    parameter FUNC3_SLTIU = 3'b011;
+    parameter FUNC3_XORI = 3'b100;
+    parameter FUNC3_ORI = 3'b110;
+    parameter FUNC3_ANDI = 3'b111;
+    parameter FUNC3_SLLI = 3'b001;
+    parameter FUNC3_SRLI = 3'b101;
+    parameter FUNC3_SRAI = 3'b101;
+    parameter FUNC7_SLLI = 7'b0000000;
+    parameter FUNC7_SRLI = 7'b0000000;
+    parameter FUNC7_SRAI = 7'b0100000;
 
+    /* opcode registers 1 */
+    reg [4:0] rs1;
+    reg [4:0] rs2_shamt;
+    reg [4:0] rd;
+    reg [(`MEM_WIDTH-1):0] immediate;
 
     /* CPU Core */
     always @(posedge i_clk) begin
@@ -85,78 +103,118 @@ module leiwand_rv32_core
 
             /* Initialize program counter */
             pc <= PC_START_VAL;
+            instruction <= 0;
 
+            /* zero out opcode registers */
+            rs1 <= 0;
+            rs2_shamt <= 0;
+            rd <= 0;
+            immediate <= 0;
+
+            /* First stage is instruction */
             cpu_stage <= STAGE_INSTR_FETCH;
 
-            /* Just for testing */
-            //i <= 0;
         end
         else begin
 
-            // /* Just for testing */
-            // if(bus_ready && !bus_access) begin
-            //     bus_addr <= `MEM_WIDTH'h20000000 + i;
-            //     bus_data_out <= `MEM_WIDTH'h00000042 + i;
-            //     bus_access <= 1;
+            if (bus_ready && !bus_access) begin
 
-            //     i <= i + 1;
-            //     if(i>=127) begin
-            //         i <= 0;
-            //         bus_addr <= 0;
-            //         bus_data_out <= 0;
-            //         bus_access <= 0;
-            //         bus_read_write <= !bus_read_write;
-            //     end
-            // end
+                case (cpu_stage)
 
-            case (cpu_stage)
+                        STAGE_INSTR_FETCH: begin
+                            bus_addr <= pc;
+                            bus_data_out <= 0;
+                            bus_access <= 1;
+                            bus_read_write <= 0;
+                            cpu_stage <= STAGE_INSTR_DECODE;
+                        end
 
-                STAGE_INSTR_FETCH: begin
-                    if(bus_ready && !bus_access) begin
-                        bus_addr <= pc;
-                        bus_data_out <= 0;
-                        bus_access <= 1;
-                        bus_read_write <= 0;
-                        cpu_stage <= STAGE_INSTR_DECODE;
-                    end
-                end
+                        /* Decode next instruction */
+                        STAGE_INSTR_DECODE: begin
 
-                STAGE_INSTR_DECODE: begin
-                    if(bus_ready && !bus_access) begin
-                        next_instruction <= bus_data_in;
-                        cpu_stage <= STAGE_INSTR_EXECUTE;
-                    end
-                end
+                            /* ADDI */
+                            if (bus_data_in[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) begin
+                                rs1[4:0] <= bus_data_in[19:15];
+                                rs2_shamt[4:0] <= bus_data_in[24:20];
+                                rd[4:0] <= bus_data_in[11:7];
+                                immediate <= bus_data_in[31:20];
+                            end
 
-                STAGE_INSTR_EXECUTE: begin
-                    if(bus_ready && !bus_access) begin
-                        cpu_stage <= STAGE_INSTR_ACCESS;
-                    end
-                end
+                            instruction <= bus_data_in;
+                            cpu_stage <= STAGE_INSTR_EXECUTE;
+                        end
 
-                STAGE_INSTR_ACCESS: begin
-                    if(bus_ready && !bus_access) begin
-                        cpu_stage <= STAGE_INSTR_WRITEBACK;
-                    end
-                end
+                        STAGE_INSTR_EXECUTE: begin
 
-                STAGE_INSTR_WRITEBACK: begin
-                    if(bus_ready && !bus_access) begin
-                        pc <= pc + 4;
-                        cpu_stage <= STAGE_INSTR_FETCH;
-                    end
-                end
+                            /* ADDI */
+                            if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ADDI) ) begin
+                                x[rd] <= $signed(immediate[11:0]) + $signed(x[rs1]);
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLTI) ) begin
+                                x[rd] <= ($signed(x[rs1]) < $signed(immediate[11:0]));
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLTIU) ) begin
+                                x[rd] <= (x[rs1] < immediate[11:0]);
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_XORI) ) begin
+                                if ($signed(immediate[11:0]) == -1) begin
+                                    x[rd] <= (x[rs1] ^ 1);
+                                end
+                                else begin
+                                    x[rd] <= (x[rs1] ^ immediate[11:0]);
+                                end
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ORI) ) begin
+                                x[rd] <= x[rs1] | $signed(immediate[11:0]);
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ANDI) ) begin
+                                x[rd] <= x[rs1] & $signed(immediate[11:0]);
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLLI) && (instruction[31:25] == FUNC7_SLLI) ) begin
+                                x[rd] <= x[rs1] << immediate[11:0];
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRLI) && (instruction[31:25] == FUNC7_SRLI) ) begin
+                                x[rd] <= x[rs1] >> immediate[11:0];
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRAI) && (instruction[31:25] == FUNC7_SRAI) ) begin
+                                x[rd] <= $signed(x[rs1]) >> immediate[11:0];
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
+                            else begin 
+                                /* Unknown instruction */
+                                cpu_stage <= STAGE_INSTR_FETCH;
+                            end
 
-            endcase
+                        end
 
+                        STAGE_INSTR_ACCESS: begin
+                            cpu_stage <= STAGE_INSTR_WRITEBACK;
+                        end
+
+                        STAGE_INSTR_WRITEBACK: begin
+                            pc <= pc + 4;
+                            cpu_stage <= STAGE_INSTR_FETCH;
+                        end
+
+                endcase
+
+            end
 
             /* reset x0 to zero, as theoretically in this implementation it can be set to any value */
-            x[0]  <= 0; 
+            x[0] <= 0; 
         end
     end
- 
-    /* WB Bus Handling */
 
+
+    /* WB Bus Handling */
     /* WB master signals */
     reg we_out_reg;
     reg stb_out_reg;
