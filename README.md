@@ -1,8 +1,12 @@
 # leiwand_rv32
 RISC-V CPU written in verilog
 
-This is my first attempt of writing a RV32I core. The name comes from the Viennese word "leiwand" which means something 
+This is my first attempt of writing an RV32I core. The name comes from the Viennese word "leiwand" which means something 
 like awesome or great.
+
+This is actually an educational project for me. I wanted to learn a bit about FPGAs, Verilog and the risc-v ISA.
+The CPU is neither size nor performance optimized, but afterall it fits into an iCE40hx8k FPGA, altough not nearly as good as
+the picorv32 from Clifford Wolf.
 
 ## Testbench and CPU core verification
 
@@ -61,10 +65,9 @@ testbench version of the design just do:
 ## Firmware
 
 When building the iCE40 design, the firmware uses the same spi flash as used for the bitstream. Entry point is at 0x100000.
-The spimemio.v design is stolen from Clifford Wolf (thanks!). This entrypoint address can not be changed at the toplevel file,
-as the design internally searches the first data entry at 0x100000.
+The spimemio.v design is stolen from Clifford Wolf (thanks!).
 
-There is a simple blinky firmware in the firmware folder. To build it issue:
+There is a simple blinky example in the firmware folder. To build it issue:
 
 ```
 riscv32-none-elf-gcc -march=rv32i -Wl,-Bstatic,--strip-debug -ffreestanding -nostdlib -o blinky.elf blinky.S
