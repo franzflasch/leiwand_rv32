@@ -151,14 +151,17 @@ module leiwand_rv32_core
                                 x[rd] <= $signed(immediate[11:0]) + $signed(x[rs1]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* SLTI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLTI) ) begin
                                 x[rd] <= ($signed(x[rs1]) < $signed(immediate[11:0]));
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* SLTIU */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLTIU) ) begin
                                 x[rd] <= (x[rs1] < immediate[11:0]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* XORI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_XORI) ) begin
                                 if ($signed(immediate[11:0]) == -1) begin
                                     x[rd] <= (x[rs1] ^ 1);
@@ -168,22 +171,27 @@ module leiwand_rv32_core
                                 end
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* ORI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ORI) ) begin
                                 x[rd] <= x[rs1] | $signed(immediate[11:0]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* ANDI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_ANDI) ) begin
                                 x[rd] <= x[rs1] & $signed(immediate[11:0]);
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* SLLI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLLI) && (instruction[31:25] == FUNC7_SLLI) ) begin
                                 x[rd] <= x[rs1] << immediate[11:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* SRLI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRLI) && (instruction[31:25] == FUNC7_SRLI) ) begin
                                 x[rd] <= x[rs1] >> immediate[11:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
+                            /* SRAI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRAI) && (instruction[31:25] == FUNC7_SRAI) ) begin
                                 x[rd] <= $signed(x[rs1]) >> immediate[11:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
