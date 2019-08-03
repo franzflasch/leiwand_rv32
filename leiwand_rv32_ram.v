@@ -117,7 +117,6 @@ module leiwand_rv32_ram # (
                                 1: mem[addr_index][31:16] <= i_dat[15:0];
                                 default: mem[addr_index] <= 0;
                             endcase
-                            4: mem[addr_index][31:0] <= i_dat[31:0];
                             default: mem[addr_index][31:0] <= i_dat[31:0];
                         endcase
                     end
