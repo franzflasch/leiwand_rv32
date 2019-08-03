@@ -388,39 +388,23 @@ module leiwand_rv32_core
                             alu_branch_op1 <= x[rs1];
                             alu_branch_op2 <= x[rs2_shamt];
 
-                            if(is_AUIPC || is_JAL ||
-                               is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU) begin
+                            if(is_auipc_jal_op || is_branch_op) begin
                                alu_op1 <= pc;
                             end
-
-                            if(is_LUI || is_AUIPC || is_JAL || 
-                               is_BEQ || is_BNE || is_BLT || is_BGE || is_BLTU || is_BGEU || 
-                               is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI ||
-                               is_LB || is_LH || is_LW || is_LBU || is_LHU || 
-                               is_SB || is_SH || is_SW || 
-                               is_JALR) begin
-                               alu_op2 <= immediate;
-                            end
-
-                            if(is_ADDI || is_SLTI || is_SLTIU || is_XORI || is_ORI || is_ANDI || is_SLLI || is_SRLI || is_SRAI || 
-                               is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND || is_SLL || is_SRL || is_SRA || 
-                               is_LB || is_LH || is_LW || is_LBU || is_LHU || 
-                               is_SB || is_SH || is_SW ||
-                               is_JALR) begin
+                            else begin
                                 alu_op1 <= x[rs1];
                             end
 
-                            if(is_SLLI || is_SRLI || is_SRAI) begin
+                            if(is_alu_shift_immediate) begin
                                 alu_op2 <= rs2_shamt;
                             end
-
-                            if(is_ADD || is_SUB || is_SLT || is_SLTU || is_XOR || is_OR || is_AND) begin
+                            else if(is_alu_logic) begin
                                 alu_op2 <= x[rs2_shamt];
                             end
-
-                            if(is_SLL || is_SRL || is_SRA) begin
+                            else if(is_alu_shift) begin
                                 alu_op2 <= x[rs2_shamt][4:0];
                             end
+                            else alu_op2 <= immediate;
 
                             cpu_stage <= STAGE_INSTR_ALU_EXECUTE;
                         end
@@ -447,8 +431,7 @@ module leiwand_rv32_core
                         end
 
                         STAGE_INSTR_ACCESS: begin
-                            if(is_LB || is_LH || is_LW || is_LBU || is_LHU || 
-                               is_SB || is_SH || is_SW) begin
+                            if(is_load_store) begin
                                 bus_addr <= alu_result_add;
 
                                 bus_data_out <= x[rs2_shamt];
@@ -463,29 +446,18 @@ module leiwand_rv32_core
                         STAGE_INSTR_WRITEBACK: begin
 
                             if (is_LUI) x[rd] <= immediate;
-                            if (is_AUIPC) x[rd] <= alu_result_addu;
-                            if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
-                            if ( (is_BEQ && alu_branch_eq) || 
-                                 (is_BNE && !alu_branch_eq) || 
-                                 (is_BLT && !alu_branch_ge) ||
-                                 (is_BGE && alu_branch_ge) || 
-                                 (is_BLTU && !alu_branch_geu) ||
-                                 (is_BGEU && alu_branch_geu) ) begin
-                                next_pc <= alu_result_addu; 
+                            else if (is_JAL || is_JALR) begin x[rd] <= next_pc; next_pc <= alu_result_addu; end
+                            else if (is_branch_op) begin
+                                if ( (is_BEQ && alu_branch_eq) || 
+                                    (is_BNE && !alu_branch_eq) || 
+                                    (is_BLT && !alu_branch_ge) ||
+                                    (is_BGE && alu_branch_ge) || 
+                                    (is_BLTU && !alu_branch_geu) ||
+                                    (is_BGEU && alu_branch_geu) ) begin
+                                    next_pc <= alu_result_addu; 
+                                end
                             end
-
-                            if(is_ADDI || is_ADD) begin x[rd] <= alu_result_add; end
-                            if(is_SLTI || is_SLT) begin x[rd] <= !alu_result_ge; end
-                            if(is_SLTIU || is_SLTU) begin x[rd] <= !alu_result_geu; end
-                            if(is_XORI || is_XOR) begin x[rd] <= alu_result_xor; end
-                            if(is_ORI || is_OR) begin x[rd] <= alu_result_or; end
-                            if(is_ANDI || is_AND) begin x[rd] <= alu_result_and; end
-                            if(is_SLLI || is_SLL) begin x[rd] <= alu_result_sll; end
-                            if(is_SRLI || is_SRL) begin x[rd] <= alu_result_srl; end
-                            if(is_SRAI || is_SRA) begin x[rd] <= alu_result_sra; end
-                            if(is_SUB) begin x[rd] <= alu_result_sub; end
-
-                            if (is_LB) begin
+                            else if (is_LB) begin
                                 case (bus_addr[1:0])
                                     0: x[rd] <= {{24{bus_data_in[7]}},bus_data_in[7:0]};
                                     1: x[rd] <= {{24{bus_data_in[15]}},bus_data_in[15:8]};
@@ -494,13 +466,13 @@ module leiwand_rv32_core
                                     default: x[rd] <= 0;
                                 endcase
                             end
-                            if (is_LH) begin
+                            else if (is_LH) begin
                                 x[rd] <= (bus_addr[1]) ? {{16{bus_data_in[31]}},bus_data_in[31:16]} : {{16{bus_data_in[15]}},bus_data_in[15:0]};
                             end
-                            if (is_LW) begin
+                            else if (is_LW) begin
                                 x[rd] <= bus_data_in;
                             end
-                            if (is_LBU) begin
+                            else if (is_LBU) begin
                                 case (bus_addr[1:0])
                                     0: x[rd] <= bus_data_in[7:0];
                                     1: x[rd] <= bus_data_in[15:8];
@@ -509,9 +481,10 @@ module leiwand_rv32_core
                                     default: x[rd] <= 0;
                                 endcase
                             end
-                            if (is_LHU) begin
+                            else if (is_LHU) begin
                                 x[rd] <= (bus_addr[1]) ? bus_data_in[31:16] : bus_data_in[15:0];
                             end
+                            else x[rd] <= alu_result;
 
                             cpu_stage <= STAGE_INSTR_FETCH;
                         end
@@ -529,6 +502,60 @@ module leiwand_rv32_core
             x[0] <= 0; 
         end
     end
+
+    wire is_auipc_jal_op;
+    assign is_auipc_jal_op = (is_AUIPC | is_JAL);
+
+    wire is_branch_op;
+    assign is_branch_op = (is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU);
+
+    wire is_alu_shift_immediate;
+    assign is_alu_shift_immediate = (is_SLLI | is_SRLI | is_SRAI);
+
+    wire is_alu_logic;
+    assign is_alu_logic = (is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND);
+
+    wire is_alu_shift;
+    assign is_alu_shift = (is_SLL | is_SRL | is_SRA);
+
+    wire is_load_store;
+    assign is_load_store = (is_LB | is_LH | is_LW | is_LBU | is_LHU | is_SB | is_SH | is_SW);
+
+
+    wire alu_is_add_op;
+    wire alu_is_slt_op;
+    wire alu_is_sltu_op;
+    wire alu_is_xor_op;
+    wire alu_is_or_op;
+    wire alu_is_and_op;
+    wire alu_is_sll_op;
+    wire alu_is_srl_op;
+    wire alu_is_sra_op;
+    wire alu_is_sub_op;
+    wire [(`MEM_WIDTH-1):0] alu_result;
+
+    assign alu_is_add_op = (is_ADD | is_ADDI);
+    assign alu_is_slt_op = (is_SLT | is_SLTI);
+    assign alu_is_sltu_op = (is_SLTU | is_SLTIU);
+    assign alu_is_xor_op = (is_XOR | is_XORI);
+    assign alu_is_or_op = (is_OR | is_ORI);
+    assign alu_is_and_op = (is_AND | is_ANDI);
+    assign alu_is_sll_op = (is_SLL | is_SLLI);
+    assign alu_is_srl_op = (is_SRL | is_SRLI);
+    assign alu_is_sra_op = (is_SRA | is_SRAI);
+    assign alu_is_sub_op = (is_SUB);
+
+    assign alu_result = ( alu_is_add_op ? alu_result_add : 
+                          alu_is_slt_op ? !alu_result_ge : 
+                          alu_is_sltu_op ? !alu_result_geu :
+                          alu_is_xor_op ? alu_result_xor :
+                          alu_is_or_op ? alu_result_or :
+                          alu_is_and_op ? alu_result_and :
+                          alu_is_sll_op ? alu_result_sll :
+                          alu_is_srl_op ? alu_result_srl :
+                          alu_is_sra_op ? alu_result_sra :
+                          alu_is_sub_op ? alu_result_sub :
+                          alu_result_addu );
 
     assign debug_led = x[10][0];
     assign o_we = we_out_reg;
