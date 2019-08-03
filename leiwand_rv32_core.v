@@ -183,17 +183,17 @@ module leiwand_rv32_core
                             end
                             /* SLLI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SLLI) && (instruction[31:25] == FUNC7_SLLI) ) begin
-                                x[rd] <= x[rs1] << immediate[11:0];
+                                x[rd] <= x[rs1] << rs2_shamt[4:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
                             /* SRLI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRLI) && (instruction[31:25] == FUNC7_SRLI) ) begin
-                                x[rd] <= x[rs1] >> immediate[11:0];
+                                x[rd] <= x[rs1] >> rs2_shamt[4:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
                             /* SRAI */
                             else if ( (instruction[6:0] == OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI) && (instruction[14:12] == FUNC3_SRAI) && (instruction[31:25] == FUNC7_SRAI) ) begin
-                                x[rd] <= $signed(x[rs1]) >> immediate[11:0];
+                                x[rd] <= $signed(x[rs1]) >> rs2_shamt[4:0];
                                 cpu_stage <= STAGE_INSTR_FETCH;
                             end
                             else begin 
