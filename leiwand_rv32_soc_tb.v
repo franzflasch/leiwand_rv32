@@ -20,6 +20,7 @@ module leiwand_rv32_core_tb();
     wire wb_stb;
     wire [(`MEM_WIDTH-1):0] wb_addr;
     wire [(`MEM_WIDTH-1):0] wb_data_out;
+    wire [`HIGH_BIT_TO_FIT(4):0] data_write_size;
 
     wire [(`MEM_WIDTH-1):0] wb_data_in_sram;
     wire [(`MEM_WIDTH-1):0] wb_data_in_rom;
@@ -42,7 +43,8 @@ module leiwand_rv32_core_tb();
             wb_stb,
             wb_cyc,
             wb_addr,
-            wb_data_out
+            wb_data_out,
+            data_write_size
     );
 
     leiwand_rv32_ram #(
@@ -51,15 +53,15 @@ module leiwand_rv32_core_tb();
     ) internal_sram (
         clk,
         reset,
-        /* byte addressing so counting start at bit 2 */
-        wb_addr[`HIGH_BIT_TO_FIT(MEMORY_SIZE-1)+2:2],
+        wb_addr,
         wb_data_out,
         wb_data_in_sram,
         wb_we,
         wb_stb_internal_sram,
         wb_ack_sram,
         wb_cyc,
-        wb_stall_sram
+        wb_stall_sram,
+        data_write_size
     );
 
     leiwand_rv32_ram #(
@@ -68,15 +70,15 @@ module leiwand_rv32_core_tb();
     ) internal_rom (
         clk,
         reset,
-        /* byte addressing so counting start at bit 2 */
-        wb_addr[`HIGH_BIT_TO_FIT(MEMORY_SIZE-1)+2:2],
+        wb_addr,
         wb_data_out,
         wb_data_in_rom,
         wb_we,
         wb_stb_internal_rom,
         wb_ack_rom,
         wb_cyc,
-        wb_stall_rom
+        wb_stall_rom,
+        data_write_size
     );
 
     assign wb_stb_internal_sram = wb_stb &&  ( (wb_addr >= `MEM_WIDTH'h10000000) && (wb_addr < `MEM_WIDTH'h10000000 + (4*MEMORY_SIZE)) );
