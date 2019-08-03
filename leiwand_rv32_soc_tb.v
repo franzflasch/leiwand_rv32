@@ -121,7 +121,7 @@ module leiwand_rv32_core_tb();
         #5
         reset=0;
 
-        for (i = 0; i < 100; i++) begin
+        for (i = 0; i < 10000; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_EXECUTE);
 
@@ -135,8 +135,14 @@ module leiwand_rv32_core_tb();
                 $display("x[%2d]: %x", j, cpu_core.x[j]);
             end
 
+            if(cpu_core.pc-4 == `SUCCESS_PC) begin 
+                $display("SUCCESS!");
+                $finish;
+            end
+
         end
 
+        $display("SOMETHING WENT WRONG!");
         $finish;
     end 
 
