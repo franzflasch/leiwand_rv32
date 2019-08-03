@@ -33,7 +33,7 @@ module leiwand_rv32_ram # (
     reg stall_out;
     reg tmp_stall;
 
-    reg [(MEM_WIDTH-1):0] mem[0:MEM_SIZE];
+    reg [(MEM_WIDTH-1):0] mem[(MEM_SIZE-1):0];
 
     reg [`HIGH_BIT_TO_FIT(STATE_FINISH):0] internal_state;
     wire [MEM_HIGH_BIT:0] addr_index;
