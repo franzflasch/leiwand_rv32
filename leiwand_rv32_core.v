@@ -328,7 +328,7 @@ module leiwand_rv32_core
                             /* JALR */
                             else if (is_JALR) begin
                                 x[rd] <= next_pc;
-                                next_pc <= ( {x[rs1][31:1], 1'b0} + { {20{immediate[11]}}, immediate[11:1], 1'b0 } );
+                                next_pc <= ( {x[rs1][31:1], 1'b0} + { immediate[31:1], 1'b0 } );
                                 `debug($display("INSTR JALR");)
                             end
                             /* BEQ */
@@ -387,32 +387,32 @@ module leiwand_rv32_core
                             /* SW */
                             /* ADDI */
                             else if (is_ADDI) begin
-                                x[rd] <= ($signed(x[rs1]) + $signed(immediate[31:0]));
+                                x[rd] <= ($signed(x[rs1]) + $signed(immediate));
                                 `debug($display("INSTR ADDI");)
                             end
                             /* SLTI */
                             else if (is_SLTI) begin
-                                x[rd] <= ($signed(x[rs1]) < $signed(immediate[31:0]));
+                                x[rd] <= ($signed(x[rs1]) < $signed(immediate));
                                 `debug($display("INSTR SLTI");)
                             end
                             /* SLTIU */
                             else if (is_SLTIU) begin
-                                x[rd] <= x[rs1] < immediate[31:0];
+                                x[rd] <= x[rs1] < immediate;
                                 `debug($display("INSTR SLTIU");)
                             end
                             /* XORI */
                             else if (is_XORI) begin
-                                x[rd] <= (x[rs1] ^ immediate[31:0]);
+                                x[rd] <= (x[rs1] ^ immediate);
                                 `debug($display("INSTR XORI");)
                             end
                             /* ORI */
                             else if (is_ORI) begin
-                                x[rd] <= (x[rs1] | immediate[31:0]);
+                                x[rd] <= (x[rs1] | immediate);
                                 `debug($display("INSTR ORI");)
                             end
                             /* ANDI */
                             else if (is_ANDI) begin
-                                x[rd] <= (x[rs1] & immediate[31:0]);
+                                x[rd] <= (x[rs1] & immediate);
                                 `debug($display("INSTR ANDI");)
                             end
                             /* SLLI */
