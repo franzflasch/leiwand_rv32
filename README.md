@@ -95,6 +95,9 @@ This will produce all register states needed to test and verify the leiwand_rv32
 ./build_leiwandrv32_tests.sh
 ```
 
+For more details about the testing please see:
+https://franzflasch.github.io/debugging/risc-v/verilog/2019/07/31/riscv-core-debugging-with-qemu.html
+
 ## Synthesizing:
 There is also a design which can be synthesized into an iCE40 FPGA using the opensource toolchain Yosys.
 
