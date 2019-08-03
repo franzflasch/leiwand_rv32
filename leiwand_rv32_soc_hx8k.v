@@ -84,20 +84,12 @@ module leiwandrv32_soc_hx8k(
 
     wire system_clock;
 
-    wire wb_ack;
-    wire [(`MEM_WIDTH-1):0] wb_data_in;
-    wire wb_stall;
-    wire wb_we;
-    wire wb_cyc;
-    wire wb_stb;
-    wire [(`MEM_WIDTH-1):0] wb_addr;
-    wire [(`MEM_WIDTH-1):0] wb_data_out;
-    wire [`HIGH_BIT_TO_FIT(4):0] data_write_size;
-
-    wire [(`MEM_WIDTH-1):0] wb_data_in_rom;
-    wire wb_stb_internal_rom;
-    wire wb_ack_rom;
-    wire wb_stall_rom;
+    wire mem_valid;
+    wire mem_ready;
+    wire [(`MEM_WIDTH-1):0] mem_addr;
+    wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
+    wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
+    wire [3:0] mem_wen;
 
     clk_divn #(.WIDTH(32), .N(8)) slow_clk(CLK, system_clock);
 
@@ -106,42 +98,29 @@ module leiwandrv32_soc_hx8k(
             system_clock, 
             !RST,
 
-            wb_ack,
-            wb_data_in,
-            wb_stall,
-            wb_we,
-            wb_stb,
-            wb_cyc,
-            wb_addr,
-            wb_data_out,
-            data_write_size,
+            mem_valid,
+            mem_ready,
+            mem_addr,
+            mem_data_cpu_in,
+            mem_data_cpu_out,
+            mem_wen,
+
             LED1
     );
 
-    leiwand_rv32_ram #(
-        .MEM_WIDTH(`MEM_WIDTH),
-        .MEM_SIZE(MEMORY_SIZE)
-    ) internal_rom (
-        system_clock,
-        !RST,
-
-        wb_addr,
-        wb_data_out,
-        wb_data_in_rom,
-        wb_we,
-        wb_stb_internal_rom,
-        wb_ack_rom,
-        wb_cyc,
-        wb_stall_rom,
-        data_write_size
-    );
-
-    assign wb_stb_internal_rom = wb_stb & wb_addr[22];// wb_stb && ( (wb_addr >= `MEM_WIDTH'h20400000) && (wb_addr < `MEM_WIDTH'h20400000 + (4*MEMORY_SIZE)) );
-    assign wb_data_in = wb_data_in_rom;
-    assign wb_stall = wb_stall_rom;
-    assign wb_ack = wb_ack_rom;
+	simple_mem #(
+		.WORDS(MEMORY_SIZE)
+	) internal_rom (
+		.clk(system_clock),
+        .valid(mem_valid),
+        .ready(mem_ready),
+		.wen(mem_wen),
+		.addr(mem_addr[31:0]),
+		.wdata(mem_data_cpu_out),
+		.rdata(mem_data_cpu_in)
+	);
 
     //assign LED1 = wb_cyc; //cpu_core.x[10][0];
-    assign LED2 = wb_stb; //cpu_core.x[11][0];
+    //assign LED2 = wb_stb; //cpu_core.x[11][0];
 
 endmodule
