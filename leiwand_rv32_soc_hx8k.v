@@ -62,7 +62,7 @@ module leiwandrv32_soc_hx8k(
 	inout  flash_io3
 );
 `endif
-    parameter RAM_SIZE = 8;
+    parameter RAM_SIZE = 128; /* MEM_WIDTH WORDS */
     parameter FLASH_SIZE = `MEM_WIDTH'h400000;
 
 `ifdef TESTBENCH_MODE

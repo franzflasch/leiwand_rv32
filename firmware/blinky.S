@@ -1,4 +1,5 @@
 start:
+	li t0, 0x20400000
 	lui t4,      0x2
 	li t5,       0
 
@@ -8,6 +9,8 @@ reset:
 repeat:
     addi t3, t3, 1
     beq t3, t4, toggle_led
+	lw t1,0(t0)
+	sw t2,0(t0)
 	j repeat
     
 toggle_led:
