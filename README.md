@@ -48,7 +48,7 @@ Currently only a subset of the RV32I ISA is implemented. The following instructi
 * or
 * and
 
-Those are the most important instructions for an risc-v core. Currently not implemented:
+The instructions above are the most important ones for an risc-v core. Currently not implemented:
 
 * fence
 * fence_i
