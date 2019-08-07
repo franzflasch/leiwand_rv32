@@ -123,6 +123,7 @@ module leiwandrv32_soc_hx8k(
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
     wire [3:0] mem_wen;
+    wire dummy_debug_led;
 
     clk_divn #(.WIDTH(32), .N(8)) slow_clk(CLK, system_clock);
 
@@ -138,7 +139,7 @@ module leiwandrv32_soc_hx8k(
             mem_data_cpu_out,
             mem_wen,
 
-            LED1
+            dummy_debug_led
     );
 
 
@@ -213,10 +214,27 @@ module leiwandrv32_soc_hx8k(
 		.cfgreg_do(spimemio_cfgreg_do)
 	);
 
-    assign mem_ready = ram_ready | spimem_ready;
-	assign mem_data_cpu_in = ram_ready ? ram_rdata : spimem_ready ? spimem_rdata : 32'h 0000_0000;
+    reg [(`MEM_WIDTH-1):0] gpio_reg;
+    reg gpio_ready;
+
+	always @(posedge system_clock) begin
+		if(!resetn) gpio_reg <= `MEM_WIDTH'h0;
+        else begin
+            if(mem_valid && (mem_addr == `MEM_WIDTH'h30000000)) begin
+                if(mem_wen != 0) gpio_reg <= mem_data_cpu_out;
+                gpio_ready <= 1;
+            end
+            else gpio_ready <= 0;
+        end
+	end
+
+    assign mem_ready = ram_ready | spimem_ready | gpio_ready;
+	assign mem_data_cpu_in = ram_ready ? ram_rdata : spimem_ready ? spimem_rdata : gpio_ready ? gpio_reg : 32'h 0000_0000;
+
+    assign LED1 = gpio_reg[0];
+    assign LED2 = gpio_reg[1];
 
     //assign LED1 = wb_cyc; //cpu_core.x[10][0];
-    assign LED2 = spimem_ready; //cpu_core.x[11][0];
+    //assign LED2 = spimem_ready; //cpu_core.x[11][0];
 
 endmodule
