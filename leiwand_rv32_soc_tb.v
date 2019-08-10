@@ -77,7 +77,7 @@ module leiwand_rv32_core_tb();
     `define SEEK_END 2
    
     integer i, j;
-    integer file_size, file, start, count, tmp;
+    integer file_size, file, tmp;
 
     initial begin
 

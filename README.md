@@ -8,7 +8,7 @@ This is actually an educational project for me. I wanted to learn a bit about FP
 The CPU is neither size nor performance optimized, but afterall it fits into an iCE40hx8k FPGA, altough not nearly as good as
 the picorv32 from Clifford Wolf.
 
-Currently only a subset of the RV32I ISA is implemented. The following instructions are currently implemented:
+Currently only a subset of the RV32I ISA is implemented. The following instructions are currently available:
 
 * lui
 * auipc
@@ -118,7 +118,7 @@ You can also build the same design with iverilog for simulating and debugging wi
 testbench version of the design just do:
 
 ```
-.build_ice40_tb.sh
+.build_ice40_tb.sh firmware.bin
 ```
 
 ## Firmware
