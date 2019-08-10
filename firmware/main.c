@@ -31,16 +31,18 @@ void __attribute__((noreturn, naked)) main(void)
 
 void __attribute__((noreturn, naked)) c_env_init (void)
 {
-	volatile unsigned *src, *dest;
-	funcp_t *fp;
+    volatile unsigned *src, *dest;
+    funcp_t *fp;
 
-	for (src = &_data_loadaddr, dest = &_sdata; dest < &_edata;src++, dest++) {
-		*dest = *src;
-	}
+    /* data initialization */
+    for (src = &_data_loadaddr, dest = &_sdata; dest < &_edata;src++, dest++) {
+        *dest = *src;
+    }
 
-	for (dest = &_sbss; dest < &_ebss;dest++) {
-		*dest = 0;
-	}
+    /* bss initialization */
+    for (dest = &_sbss; dest < &_ebss;dest++) {
+        *dest = 0;
+    }
 
     main();   
 }
