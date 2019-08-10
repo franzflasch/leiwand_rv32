@@ -1,14 +1,18 @@
 MEMORY
 {
     FLASH (rx)      : ORIGIN = 0x00100000, LENGTH = 0x004000 /* entire flash, 4 MiB */
-    RAM (xrw)       : ORIGIN = 0x00000000, LENGTH = 0x004000 /* 1 KB */
+    RAM (xrw)       : ORIGIN = 0x20400000, LENGTH = 0x000200 /* 512 B */
 }
+
+ENTRY(asm_init)
 
 SECTIONS {
     /* The program code and other data goes into FLASH */
     .text :
     {
         . = ALIGN(4);
+        *(.init_sec)       /* .init sections (code) */
+        *(.init_sec*)      /* .init* sections (code) */
         *(.text)           /* .text sections (code) */
         *(.text*)          /* .text* sections (code) */
         *(.rodata)         /* .rodata sections (constants, strings, etc.) */
@@ -38,6 +42,7 @@ SECTIONS {
         . = ALIGN(4);
         _edata = .;        /* define a global symbol at data end; used by startup code in order to initialise the .data section in RAM */
     } >RAM
+    _data_loadaddr = LOADADDR(.data);
 
     /* Uninitialized data section */
     .bss :
@@ -60,4 +65,7 @@ SECTIONS {
         . = ALIGN(4);
         _heap_start = .;    /* define a global symbol at heap start */
     } >RAM
+
+
+    PROVIDE(_stack = ORIGIN(RAM) + LENGTH(RAM) -4);
 }

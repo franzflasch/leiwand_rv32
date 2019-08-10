@@ -2,8 +2,8 @@
 
 set -e
 
-riscv32-none-elf-gcc -march=rv32i -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -o hello_world_fw.elf main.c
-riscv32-none-elf-objcopy -O binary hello_world_fw.elf hello_world_fw.bin
+riscv32-none-elf-gcc -march=rv32i -Wl,-Bstatic,-T,sections.lds,--strip-debug -ffreestanding -nostdlib -nostartfiles -o c_blinky.elf init.S main.c
+riscv32-none-elf-objcopy -O binary c_blinky.elf c_blinky.bin
 
 # print text section
 #riscv32-none-elf-objdump -d hx8kdemo_fw.elf | awk '{print "0x"$2","}'
