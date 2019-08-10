@@ -71,6 +71,7 @@ To use it you need to have these 2 tools installed:
 
 * riscv32-*-elf-gcc
 * qemu-system-riscv32
+* iverilog
 
 The tests simply compare the qemu register states with the leiwand_rv32 register states. If they are 100% identical, then
 I assume that the core works correctly.
