@@ -66,12 +66,12 @@ However for an absolute minimal RV32I CPU they are not needed anyway.
 ## Interrupt support
 There is now a rudimentary support for interrupts. Most of the IRQ work is done in SW.
 The cpu core was modified in an absolute minimal manner to support this.
-Behavior is like this. The CPU reads a 32 bit wide interrupt status register. So currently 32 different IRQ sources are possible.
+Behavior is like this: The CPU reads a 32 bit wide interrupt status register. So currently 32 different IRQ sources are possible.
 If this register is not zero and the internal IRQ flag within the CPU is zero, the CPU jumps to the instruction located at
 PC_START_VAL + 4. Here should be a jump to the interrupt service routine. If the CPU already has marked the internal flag with 1,
-the CPU will just continueing with the IRQ service routine. So a jump to the IRQ vector is triggered if (irq_status_reg && !irq_internal_flag).
+the CPU will just continuing with the IRQ service routine. So a jump to the IRQ vector is triggered if (irq_status_reg && !irq_internal_flag).
 The IRQ service routine has to delete the status register at the end, otherwise the CPU will jump to the interrupt vector again and again. Furthermore
-the IRQ service routine has to call the csrrw instruction at very end of the routine to clear the internal irq flag, otherwise undefined behavior will occur!!
+the IRQ service routine has to call the csrrw instruction at the very end of the routine to clear the internal irq flag, otherwise undefined behavior will occur!!
 
 The c_blinky example was updated to support interrupts. Within the init.S the current context will be saved, then the IRQ handler is called, 
 and after that the context is restored again. Just have a look at the implementation to get an idea how it works.
