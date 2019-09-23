@@ -76,6 +76,12 @@ the IRQ service routine has to call the csrrw instruction at the very end of the
 The c_blinky example was updated to support interrupts. Within the init.S the current context will be saved, then the IRQ handler is called, 
 and after that the context is restored again. Just have a look at the implementation to get an idea how it works.
 
+The interrupts can be easily tested with the testbench build:
+```
+./build_ice40_tb.sh firmware/c_blinky.bin
+```
+Just be sure to trigger the interrupt at a specific clock count value. Like in the current leiwand_rv32_soc_hx8k.v implementation. Also if testing the interrupts like this, be sure to lower the busy_delay value, otherwise it will be very slow.
+
 Currently MISSING: register to enable the interrupts, to prevent spurious interrupts during bootup.
 
 ## Testbench and CPU core verification
