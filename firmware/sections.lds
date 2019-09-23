@@ -4,13 +4,14 @@ MEMORY
     RAM (xrw)       : ORIGIN = 0x20400000, LENGTH = 0x000200 /* 512 B */
 }
 
-ENTRY(asm_init)
+ENTRY(vecs_init)
 
 SECTIONS {
     /* The program code and other data goes into FLASH */
     .text :
     {
         . = ALIGN(4);
+        *(.vectors)        /* .vector table */
         *(.init_sec)       /* .init sections (code) */
         *(.init_sec*)      /* .init* sections (code) */
         *(.text)           /* .text sections (code) */

@@ -28,8 +28,6 @@ module leiwand_rv32_core_tb();
     reg clk = 0;
     reg reset = 0;
 
-    wire debug_led;
-
     wire mem_valid;
     wire mem_ready;
     wire [(`MEM_WIDTH-1):0] mem_addr;
@@ -37,6 +35,8 @@ module leiwand_rv32_core_tb();
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
     wire mem_read_write;
     wire [3:0] mem_wen;
+
+    wire [(`MEM_WIDTH-1):0] dummy_irq_status;
 
     leiwand_rv32_core
         cpu_core (
@@ -49,8 +49,7 @@ module leiwand_rv32_core_tb();
             mem_data_cpu_in,
             mem_data_cpu_out,
             mem_wen,
-
-            debug_led
+            dummy_irq_status
     );
 
 	simple_mem #(

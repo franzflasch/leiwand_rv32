@@ -3,7 +3,6 @@
 
 typedef void (*funcp_t) (void);
 
-
 extern unsigned _data_loadaddr, _sdata, _edata, _sbss, _ebss, _stack;
 
 
@@ -45,4 +44,22 @@ void __attribute__((noreturn, naked)) c_env_init (void)
     }
 
     main();   
+}
+
+
+void test_irq (void)
+{
+    static uint32_t gpio_val = 0x42;
+    uint32_t *gpio_ptr = (uint32_t *) 0x30000000;
+
+    (*gpio_ptr) = gpio_val++;
+}
+
+static uint32_t *irq_status_ptr = (uint32_t *) 0x40000000;
+
+void irq_handler (void)
+{
+    test_irq();   
+
+    (*irq_status_ptr) = 0x00;
 }

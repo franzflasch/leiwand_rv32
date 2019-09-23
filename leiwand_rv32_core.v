@@ -44,7 +44,7 @@ module leiwand_rv32_core # (
         output [(`MEM_WIDTH-1):0] o_mem_data,
         output [3:0] o_mem_wen,
 
-        output debug_led
+        input [(`MEM_WIDTH-1):0] irq_status
     );
 
     /* Currently 4 Stages (not pipelined) */
@@ -141,6 +141,10 @@ module leiwand_rv32_core # (
     localparam FUNC3_SH = 3'b001;
     localparam FUNC3_SW = 3'b010;
 
+    /* CSR instructions */
+    localparam OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI = 7'b1110011;
+    localparam FUNC3_CSRRWI = 3'b101;
+
     reg is_LUI;
     reg is_AUIPC;
     reg is_JAL;
@@ -150,6 +154,7 @@ module leiwand_rv32_core # (
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
     reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
     reg is_SB, is_SH, is_SW;
+    reg is_CSRRWI;
 
     /* ALU */
     reg alu_result_slt;
@@ -169,6 +174,9 @@ module leiwand_rv32_core # (
     reg alu_branch_eq;
     reg alu_branch_ge;
     reg alu_branch_geu;
+
+    reg irq_internal_flag;
+    reg [(`MEM_WIDTH-1):0]irq_return_pc;
 
     /* CPU Core */
     always @(posedge i_clk) begin
@@ -221,6 +229,9 @@ module leiwand_rv32_core # (
             mem_wen <= 0;
 
             mem_access <= 0;
+
+            irq_internal_flag = 0;
+            irq_return_pc = 0;
         end
         else begin
 
@@ -237,6 +248,13 @@ module leiwand_rv32_core # (
                 case (cpu_stage)
 
                         STAGE_INSTR_FETCH: begin
+
+                            if(irq_status & !irq_internal_flag) begin
+                                irq_internal_flag <= 1;
+                                irq_return_pc = next_pc;
+                                next_pc = (PC_START_VAL + 4);
+                            end
+
                             mem_addr_out <= next_pc;
                             mem_access <= 1;
                             mem_valid <= 1;
@@ -295,6 +313,8 @@ module leiwand_rv32_core # (
                             is_SB <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SB, OP_SB_SH_SW} ) ? 1 : 0;
                             is_SH <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
                             is_SW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
+
+                            is_CSRRWI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRWI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
 
                             case (mem_data_in[6:0])
 
@@ -433,6 +453,20 @@ module leiwand_rv32_core # (
                             else if (is_LHU) begin
                                 x[rd] <= { {16{1'b0}}, (mem_addr_out[1]) ? mem_data_in[31:16] : mem_data_in[15:0] };
                             end
+                            else if (is_CSRRWI) begin
+                                /* FIXME: actually implement the correct CSRRWI instruction here */
+                                /*  We actually don't implement CSRRWI here, we abuse this 
+                                    instruction for our poor interrupt handling 
+                                */
+                                irq_internal_flag <= 0;
+                                next_pc <= irq_return_pc;
+
+                                /* This instruction actually could be used for this,
+                                   it should look something like this: */
+                                // x[rd] <= csr[immediate];
+                                // /* in rs1 immediate is stored */
+                                // csr[immediate] <= rs1;
+                            end
                             else x[rd] <= alu_result;
 
                             cpu_stage <= STAGE_INSTR_FETCH;
@@ -509,8 +543,6 @@ module leiwand_rv32_core # (
     assign alu_is_sl_op = (is_SLL | is_SLLI);
     assign alu_is_sr_op = (is_SRA | is_SRAI | is_SRL | is_SRLI);
     assign alu_is_sub_op = (is_SUB);
-
-    assign debug_led = x[30][0];
 
     assign o_mem_valid = mem_valid;
     assign o_mem_addr = mem_addr_out;

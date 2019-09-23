@@ -67,6 +67,7 @@ module leiwandrv32_soc_hx8k(
 
 `ifdef TESTBENCH_MODE
     reg CLK = 0;
+    reg [(`MEM_WIDTH-1):0] clk_count = 0;
     reg RST = 0;
     wire flash_csb;
     wire flash_clk;
@@ -112,15 +113,32 @@ module leiwandrv32_soc_hx8k(
             $display ("internal rom %d: %x", i, internal_rom.mem[i]);
         end
 
-        $dumpfile("leiwand_rv32_soc_hx8k_tb.vcd");
-        $dumpvars(0, leiwandrv32_soc_hx8k);
+        // $dumpfile("leiwand_rv32_soc_hx8k_tb.vcd");
+        // $dumpvars(0, leiwandrv32_soc_hx8k);
 
-        for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
-            $dumpvars(0, cpu_core.x[i]);
-        end
+        // for (i = 0; i < `NR_RV_REGS; i = i + 1) begin
+        //     $dumpvars(0, cpu_core.x[i]);
+        // end
 
-        # 150000 $finish;
+        $monitor("gpio_reg=%x\n",gpio_reg);
+        //$monitor("pc: %x %x", cpu_core.pc, cpu_core.irq_return_pc);
+
+        // # 150000 $finish;
     end
+
+    always @(posedge system_clock) begin
+        if(!resetn) clk_count <= `MEM_WIDTH'h0;
+        else begin
+            clk_count <= clk_count + 1;
+
+            if(clk_count == 100000) begin
+                $display("!!!!!!!!!!TRIGGER INTERRUPT=%x!!!!!!!!!\n",clk_count);
+                irq_status_reg <= 1;
+                clk_count <= 0;
+            end
+        end
+    end
+
 `endif
 
     wire system_clock;
@@ -138,7 +156,8 @@ module leiwandrv32_soc_hx8k(
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
     wire [3:0] mem_wen;
-    wire dummy_debug_led;
+    wire [(`MEM_WIDTH-1):0] irq_status_wire;
+    wire irq_reset_flag_wire;
 
     clk_divn #(.WIDTH(32), .N(8)) slow_clk(CLK, system_clock);
 
@@ -154,7 +173,7 @@ module leiwandrv32_soc_hx8k(
             mem_data_cpu_out,
             mem_wen,
 
-            dummy_debug_led
+            irq_status_wire
     );
 
 
@@ -257,8 +276,26 @@ module leiwandrv32_soc_hx8k(
         end
     end
 
-    assign mem_ready = ram_ready | rom_ready | gpio_ready;
-    assign mem_data_cpu_in = ram_ready ? ram_rdata : rom_ready ? rom_rdata : gpio_ready ? gpio_reg : 32'h 0000_0000;
+    reg [(`MEM_WIDTH-1):0] irq_status_reg;
+    reg irq_status_ready;
+    reg irq_reset_flag;
+
+    always @(posedge system_clock) begin
+        if(!resetn) irq_status_reg <= `MEM_WIDTH'h0;
+        else begin
+            if(mem_valid && (mem_addr == `MEM_WIDTH'h40000000)) begin
+                if(mem_wen != 0) irq_status_reg <= mem_data_cpu_out;
+                irq_status_ready <= 1;
+            end
+            else begin 
+                irq_status_ready <= 0;
+            end
+        end
+    end
+
+    assign mem_ready = ram_ready | rom_ready | gpio_ready | irq_status_ready;
+    assign mem_data_cpu_in = ram_ready ? ram_rdata : rom_ready ? rom_rdata : gpio_ready ? gpio_reg : irq_status_ready ? irq_status_reg : 32'h 0000_0000;
+    assign irq_status_wire = irq_status_reg;
 
     assign LED1 = gpio_reg[0];
     assign LED2 = gpio_reg[1];
