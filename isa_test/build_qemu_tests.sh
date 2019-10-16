@@ -68,9 +68,16 @@ do
     echo $END_PC
 
     qemu-system-riscv32 -nographic -machine sifive_e -kernel qemu_compiled_files/${i}_qemu.elf -d in_asm,cpu -s -S 2> qemu_traces/${i}_trace.txt &
-    riscv32-none-elf-gdb -ex "target remote localhost:1234" -ex "source step_mult.gdb" -ex "step_mult $END_PC" qemu_compiled_files/${i}_qemu.elf
+    
+    # sleep here to give qemu time to start up
+    sleep 1
+
+    riscv32-none-elf-gdb -ex "set arch riscv:rv32" -ex "target remote localhost:1234" -ex "source step_mult.gdb" -ex "step_mult $END_PC" qemu_compiled_files/${i}_qemu.elf
 
     kill -9 $(pidof qemu-system-riscv32)
+
+    # sleep here to give linux some time to kill
+    sleep 1
 done
 
 for i in "${tests[@]}"

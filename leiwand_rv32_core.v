@@ -249,7 +249,7 @@ module leiwand_rv32_core # (
 
                         STAGE_INSTR_FETCH: begin
 
-                            if(irq_status & !irq_internal_flag) begin
+                            if((irq_status != 0) & !irq_internal_flag) begin
                                 irq_internal_flag <= 1;
                                 irq_return_pc = next_pc;
                                 next_pc = (PC_START_VAL + 4);
