@@ -4,9 +4,15 @@ mtvec: [1:0]  MODE: Vectored or Direct
        [31:2] BASE: Interrupt Vector Base Address
 
         In direct mode all traps will set the PC to BASE
+        In vectoed mode pc will be set to BASE+4*cause.
 
 mcause: [30:0] Exception Code(WLRL): Code indicating what caused the traps
         [31:31] Interrupt: Indicates if it was an interrupt or some other Exception.
+
+Important Note: Environment calls seem to set mepc to the instruction address which actually called ecall. Which means,
+that the SW handler has to advance the address manually by 4. For "asynchronous interrupts" it seems, that this is done by the HW. 
+Which means, that depending on source of the trap we need to advance the mepc by for or not. I am still not sure if this behavior is only
+for ecall/ebreak or also all other non asynchronous interrupts.
 
 Interrupt | Exception Code | Description:
     1     |       0        |    User software interrupt
@@ -48,6 +54,5 @@ mepc:
     - Means: FPGA has to set the mepc to the instruction which caused the trap, when an interrupt or ecall 
     is triggered. The ISR in software has to set the mepc register to the instruction causing the trap + 4 
     and call mret (or using gcc attribute: void __attribute__ ((interrupt)) ) to return from the exception handler.
-
 
 
