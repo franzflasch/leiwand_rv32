@@ -121,6 +121,7 @@ module leiwandrv32_soc_hx8k(
         // end
 
         $monitor("gpio_reg=%x\n",gpio_reg);
+        $monitor("mcause=%x\n",cpu_core.csr[5]);
         //$monitor("pc: %x %x", cpu_core.pc, cpu_core.irq_return_pc);
 
         // # 150000 $finish;
@@ -131,11 +132,11 @@ module leiwandrv32_soc_hx8k(
         else begin
             clk_count <= clk_count + 1;
 
-            if(clk_count == 100000) begin
-                $display("!!!!!!!!!!TRIGGER INTERRUPT=%x!!!!!!!!!\n",clk_count);
-                irq_status_reg <= 1;
-                clk_count <= 0;
-            end
+            // if(clk_count == 100000) begin
+            //     $display("!!!!!!!!!!TRIGGER INTERRUPT=%x!!!!!!!!!\n",clk_count);
+            //     irq_status_reg <= 1;
+            //     clk_count <= 0;
+            // end
         end
     end
 

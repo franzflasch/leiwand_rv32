@@ -29,6 +29,10 @@
   `define debug(debug_command)
 `endif
 
+
+`define ENABLE_CSR_REGS
+
+
 module leiwand_rv32_core # (
         parameter PC_START_VAL = `MEM_WIDTH'h20400000 /* HiFive1 Value */
     )
@@ -46,6 +50,72 @@ module leiwand_rv32_core # (
 
         input [(`MEM_WIDTH-1):0] irq_status
     );
+
+    `ifdef ENABLE_CSR_REGS
+        /* CSR instructions */
+        localparam OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI = 7'b1110011;
+        localparam FUNC3_CSRRW = 3'b001;
+        localparam FUNC3_CSRRS = 3'b010;
+        localparam FUNC3_CSRRC = 3'b011;
+        localparam FUNC3_CSRRWI = 3'b101;
+        localparam FUNC3_CSRRSI = 3'b110;
+        localparam FUNC3_CSRRCI = 3'b111;
+
+        reg is_CSRRW;
+        reg is_CSRRS;
+        reg is_CSRRC;        
+        reg is_CSRRWI;
+        reg is_CSRRSI;
+        reg is_CSRRCI;
+
+        /* CSR Registers */
+        /* Trap Setup */
+        localparam MSTATUS = 0;
+        localparam MIE = 1;
+        localparam MTVEC = 2;
+        /* Trap Handling */
+        localparam MSCRATCH = 3;
+        localparam MEPC = 4;
+        localparam MCAUSE = 5;
+        localparam MTVAL = 6;
+        localparam MIP = 7;
+
+        reg [(`MEM_WIDTH-1):0] csr[(MIP-1):0];
+
+        //function automatic [(`MEM_WIDTH-1):0] csr_reg_val;
+        function [`HIGH_BIT_TO_FIT(MIP):0] csr_reg_to_internal_index;
+            input [11:0] i_reg_nr;
+            begin
+                case (i_reg_nr)
+                        12'h300: begin
+                            csr_reg_to_internal_index = MSTATUS;
+                        end
+                        12'h304: begin
+                            csr_reg_to_internal_index = MIE;
+                        end
+                        12'h305: begin
+                            csr_reg_to_internal_index = MTVEC;
+                        end
+                        12'h340: begin
+                            csr_reg_to_internal_index = MSCRATCH;
+                        end
+                        12'h341: begin
+                            csr_reg_to_internal_index = MEPC;
+                        end
+                        12'h342: begin
+                            csr_reg_to_internal_index = MCAUSE;
+                        end
+                        12'h343: begin
+                            csr_reg_to_internal_index = MTVAL;
+                        end
+                        12'h344: begin
+                            csr_reg_to_internal_index = MIP;
+                        end
+                        default: csr_reg_to_internal_index = 0;
+                endcase
+            end
+        endfunction
+    `endif
 
     /* Currently 4 Stages (not pipelined) */
     localparam STAGE_INSTR_FETCH = 0;
@@ -141,10 +211,6 @@ module leiwand_rv32_core # (
     localparam FUNC3_SH = 3'b001;
     localparam FUNC3_SW = 3'b010;
 
-    /* CSR instructions */
-    localparam OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI = 7'b1110011;
-    localparam FUNC3_CSRRWI = 3'b101;
-
     reg is_LUI;
     reg is_AUIPC;
     reg is_JAL;
@@ -154,7 +220,6 @@ module leiwand_rv32_core # (
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
     reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
     reg is_SB, is_SH, is_SW;
-    reg is_CSRRWI;
 
     /* ALU */
     reg alu_result_slt;
@@ -174,9 +239,6 @@ module leiwand_rv32_core # (
     reg alu_branch_eq;
     reg alu_branch_ge;
     reg alu_branch_geu;
-
-    reg irq_internal_flag;
-    reg [(`MEM_WIDTH-1):0]irq_return_pc;
 
     /* CPU Core */
     always @(posedge i_clk) begin
@@ -229,9 +291,6 @@ module leiwand_rv32_core # (
             mem_wen <= 0;
 
             mem_access <= 0;
-
-            irq_internal_flag = 0;
-            irq_return_pc = 0;
         end
         else begin
 
@@ -248,13 +307,6 @@ module leiwand_rv32_core # (
                 case (cpu_stage)
 
                         STAGE_INSTR_FETCH: begin
-
-                            if((irq_status != 0) & !irq_internal_flag) begin
-                                irq_internal_flag <= 1;
-                                irq_return_pc = next_pc;
-                                next_pc = (PC_START_VAL + 4);
-                            end
-
                             mem_addr_out <= next_pc;
                             mem_access <= 1;
                             mem_valid <= 1;
@@ -314,7 +366,14 @@ module leiwand_rv32_core # (
                             is_SH <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
                             is_SW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
 
-                            is_CSRRWI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRWI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                            `ifdef ENABLE_CSR_REGS
+                                is_CSRRW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRW, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                                is_CSRRS <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRS, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                                is_CSRRC <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRC, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                                is_CSRRWI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRWI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                                is_CSRRSI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRSI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                                is_CSRRCI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRCI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
+                            `endif
 
                             case (mem_data_in[6:0])
 
@@ -453,20 +512,24 @@ module leiwand_rv32_core # (
                             else if (is_LHU) begin
                                 x[rd] <= { {16{1'b0}}, (mem_addr_out[1]) ? mem_data_in[31:16] : mem_data_in[15:0] };
                             end
-                            else if (is_CSRRWI) begin
-                                /* FIXME: actually implement the correct CSRRWI instruction here */
-                                /*  We actually don't implement CSRRWI here, we abuse this 
-                                    instruction for our poor interrupt handling 
-                                */
-                                irq_internal_flag <= 0;
-                                next_pc <= irq_return_pc;
-
-                                /* This instruction actually could be used for this,
-                                   it should look something like this: */
-                                // x[rd] <= csr[immediate];
-                                // /* in rs1 immediate is stored */
-                                // csr[immediate] <= rs1;
-                            end
+                            `ifdef ENABLE_CSR_REGS
+                                else if (is_csr_op) begin
+                                    x[rd] <= csr[csr_reg_to_internal_index(immediate[11:0])];
+                                    if (is_CSRRW | is_CSRRWI) begin
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRWI ? { {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] } : x[rs1[4:0]];
+                                    end
+                                    else if (is_CSRRS | is_CSRRSI) begin
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRSI ? 
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] | { {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] } : 
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] | x[rs1[4:0]];
+                                    end
+                                    else if (is_CSRRC | is_CSRRCI) begin
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRCI ? 
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] & (~{ {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] }) : 
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] & ~x[rs1[4:0]];
+                                    end
+                                end
+                            `endif
                             else x[rd] <= alu_result;
 
                             cpu_stage <= STAGE_INSTR_FETCH;
@@ -548,5 +611,10 @@ module leiwand_rv32_core # (
     assign o_mem_addr = mem_addr_out;
     assign o_mem_data = mem_data_out;
     assign o_mem_wen = mem_wen;
+
+    `ifdef ENABLE_CSR_REGS
+    wire is_csr_op;
+    assign is_csr_op = (is_CSRRC | is_CSRRCI | is_CSRRS | is_CSRRSI | is_CSRRW | is_CSRRWI);
+    `endif
 
 endmodule
