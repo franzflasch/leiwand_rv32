@@ -177,35 +177,15 @@ module leiwandrv32_soc_hx8k(
             irq_status_wire
     );
 
+    wire rom_ready;
+    wire [(`MEM_WIDTH-1):0] rom_rdata;
 
-    wire ram_ready;
-    wire [(`MEM_WIDTH-1):0] ram_rdata;
-
-    simple_mem #(
-        .WORDS(RAM_SIZE)
-    ) internal_ram (
-        .clk(system_clock),
-        .rst(!resetn),
-        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < (`MEM_WIDTH'h20400000 + (4*RAM_SIZE)))),
-        .ready(ram_ready),
-        .wen(mem_wen),
-        .addr(mem_addr[31:0]),
-        .wdata(mem_data_cpu_out),
-        .rdata(ram_rdata)
-    );
-
-    // assign mem_ready = ram_ready;
-    // assign mem_data_cpu_in = ram_ready ? ram_rdata : 32'h 0000_0000;
-
+`ifndef TESTBENCH_MODE
     wire flash_io0_oe, flash_io0_do, flash_io0_di;
     wire flash_io1_oe, flash_io1_do, flash_io1_di;
     wire flash_io2_oe, flash_io2_do, flash_io2_di;
     wire flash_io3_oe, flash_io3_do, flash_io3_di;
 
-    wire rom_ready;
-    wire [(`MEM_WIDTH-1):0] rom_rdata;
-
-`ifndef TESTBENCH_MODE
     SB_IO #(
         .PIN_TYPE(6'b 1010_01),
         .PULLUP(1'b 0)
@@ -262,6 +242,24 @@ module leiwandrv32_soc_hx8k(
         .rdata(rom_rdata)
     );
 `endif
+
+
+    wire ram_ready;
+    wire [(`MEM_WIDTH-1):0] ram_rdata;
+
+    simple_mem #(
+        .WORDS(RAM_SIZE)
+    ) internal_ram (
+        .clk(system_clock),
+        .rst(!resetn),
+        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < (`MEM_WIDTH'h20400000 + (4*RAM_SIZE)))),
+        .ready(ram_ready),
+        .wen(mem_wen),
+        .addr(mem_addr[31:0]),
+        .wdata(mem_data_cpu_out),
+        .rdata(ram_rdata)
+    );
+
 
     reg [(`MEM_WIDTH-1):0] gpio_reg;
     reg gpio_ready;

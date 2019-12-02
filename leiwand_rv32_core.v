@@ -117,7 +117,7 @@ module leiwand_rv32_core # (
         endfunction
     `endif
 
-    /* Currently 4 Stages (not pipelined) */
+    /* Currently 6 Stages (not pipelined) */
     localparam STAGE_INSTR_FETCH = 0;
     localparam STAGE_INSTR_DECODE = 1;
     localparam STAGE_INSTR_ALU_PREPARE = 2;

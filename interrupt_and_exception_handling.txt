@@ -51,8 +51,8 @@ mepc:
     encountered the exception. Otherwise, mepc is never written by the implementation, though it may
     be explicitly written by software.
 
-    - Means: FPGA has to set the mepc to the instruction which caused the trap, when an interrupt or ecall 
-    is triggered. The ISR in software has to set the mepc register to the instruction causing the trap + 4 
-    and call mret (or using gcc attribute: void __attribute__ ((interrupt)) ) to return from the exception handler.
+    - Means: For (synchronous) exceptions mepc will be set to the instruction which triggered the exception 
+      and for (asynchronous) interrupts mepc will be set to PC+4. - https://stackoverflow.com/questions/58726942/risc-v-exceptions-vs-interrupts
+      For asynchronous interrupts mepc is automatically set to PC+4 by HW. For synchronous exceptions (e.g. ecall) mepc is set to the PC which caused the trap.
 
 
