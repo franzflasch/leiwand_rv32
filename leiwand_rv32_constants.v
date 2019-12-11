@@ -18,3 +18,12 @@
 
 `define NR_RV_REGS 32
 `define MEM_WIDTH 32
+
+/* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
+/* https://static.dev.sifive.com/E31-Coreplex.pdf */
+/* Machine Software Interrupt */
+`define MSI_BIT 3
+/* Machine Timer Interrupt */
+`define MTI_BIT 7
+/* Machine External Interrupt */
+`define MEI_BIT 11
