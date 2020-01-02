@@ -33,7 +33,6 @@ module leiwand_rv32_core_tb();
     wire [(`MEM_WIDTH-1):0] mem_addr;
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
     wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
-    wire mem_read_write;
     wire [3:0] mem_wen;
 
     wire [(`MEM_WIDTH-1):0] dummy_irq_status;
@@ -48,8 +47,7 @@ module leiwand_rv32_core_tb();
             mem_addr,
             mem_data_cpu_in,
             mem_data_cpu_out,
-            mem_wen,
-            dummy_irq_status
+            mem_wen
     );
 
 	simple_mem #(
@@ -104,7 +102,7 @@ module leiwand_rv32_core_tb();
 
         for (i = 0; i < 10000; i++) begin
             wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_FETCH);
-            wait ((cpu_core.cpu_stage == cpu_core.STAGE_INSTR_ALU_PREPARE));
+            wait (cpu_core.cpu_stage == cpu_core.STAGE_INSTR_ALU_PREPARE);
 
             $display("\n");
             $display("cycle: %d", i);

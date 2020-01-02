@@ -46,9 +46,7 @@ module leiwand_rv32_core # (
         output [(`MEM_WIDTH-1):0] o_mem_addr,
         input [(`MEM_WIDTH-1):0] i_mem_data,
         output [(`MEM_WIDTH-1):0] o_mem_data,
-        output [3:0] o_mem_wen,
-
-        input [(`MEM_WIDTH-1):0] irq_status
+        output [3:0] o_mem_wen
     );
 
     `ifdef ENABLE_CSR_REGS
@@ -126,9 +124,11 @@ module leiwand_rv32_core # (
     localparam STAGE_INSTR_WRITEBACK = 5;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
-    /* RISC-V Registers x0-x31 */
+    /* RISC-V Registers x0-x31 */    
     reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
     reg [(`MEM_WIDTH-1):0] pc;
+
+    /* verilator lint_off UNUSED */
     reg [(`MEM_WIDTH-1):0] instruction;
 
     /* opcode registers */

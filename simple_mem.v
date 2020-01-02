@@ -26,6 +26,7 @@ module simple_mem #(
     input valid,
 	output reg ready,
 	input [3:0] wen,
+	/* verilator lint_off UNUSED */
 	input [31:0] addr,
 	input [31:0] wdata,
 	output reg [31:0] rdata
