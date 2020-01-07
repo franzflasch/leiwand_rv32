@@ -19,4 +19,4 @@ fi
 
 SUCCESS_PC="$(riscv32-none-elf-objdump -S $ELF_FILE | grep "<pass>:" | awk '{print $1}')"
 
-./obj_dir/Vleiwand_rv32_soc_tb_verilator $BINARY_TO_LOAD $SUCCESS_PC
+./verilator_isa_test/Vleiwand_rv32_soc_tb_verilator $BINARY_TO_LOAD $SUCCESS_PC

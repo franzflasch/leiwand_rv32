@@ -7,11 +7,11 @@
 #include <verilated_vcd_c.h>
 
 int main(int argc, char **argv) {
-	// Initialize Verilators variables
-	Verilated::commandArgs(argc, argv);
+    // Initialize Verilators variables
+    Verilated::commandArgs(argc, argv);
 
-	// Create an instance of our module under test
-	Vleiwand_rv32_soc_tb_verilator *tb = new Vleiwand_rv32_soc_tb_verilator;
+    // Create an instance of our module under test
+    Vleiwand_rv32_soc_tb_verilator *tb = new Vleiwand_rv32_soc_tb_verilator;
 
     Verilated::traceEverOn(true);
     VerilatedVcdC *tfp = new VerilatedVcdC;
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
     success_pc = strtol(argv[2], NULL, 16);
 
-    //printf("file_size: %d success pc: %x\n", file_size, success_pc); 
+    //printf("file_size: %d success pc: %x\n", file_size, success_pc);
 
     fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem), 1, fptr);
 
@@ -61,11 +61,11 @@ int main(int argc, char **argv) {
 
     int tick = 0;
 
-	// Tick the clock until we are done
-	// while(!Verilated::gotFinish()) {
+    // Tick the clock until we are done
+    // while(!Verilated::gotFinish()) {
 
         tb->i_rst = 0;
-        
+
         for(i=0;i<10;i++)
         {
             tfp->dump (2*tick);
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
         }
 
         tb->i_rst = 1;
-        
+
         for(i=0;i<10;i++)
         {
             tfp->dump (tick);
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
         }
 
         tb->i_rst = 0;
-        
+
         for(i=0;i<10000;i++)
         {
             if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage == 2)
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
                 printf("instr: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
                 for(j=0;j<32;j++)
                     printf("x[%2d]: %08x\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
-                
+
                 cycle++;
             }
 
@@ -134,10 +134,10 @@ int main(int argc, char **argv) {
             printf("SUCCESS!\n");
         }
 
-	// }
-    
+    // }
+
     tfp->close();
     tfp = NULL;
-    
+
     exit(EXIT_SUCCESS);
 }

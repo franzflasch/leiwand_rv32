@@ -16,7 +16,7 @@
  *   along with leiwand_rv32.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-`timescale 1ns/1ps 
+`timescale 1ns/1ps
 
 `include "helper.v"
 `include "leiwand_rv32_constants.v"
@@ -37,7 +37,7 @@ module leiwand_rv32_soc_tb_verilator(
 
     leiwand_rv32_core
         cpu_core (
-            .i_clk(i_clk), 
+            .i_clk(i_clk),
             .i_rst(i_rst),
 
             .o_mem_valid(mem_valid),
@@ -62,4 +62,4 @@ module leiwand_rv32_soc_tb_verilator(
 		.rdata(mem_data_cpu_in)
 	);
 
-endmodule 
+endmodule
