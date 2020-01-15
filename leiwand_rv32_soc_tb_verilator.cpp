@@ -7,6 +7,16 @@
 #include <verilated_vcd_c.h>
 
 int main(int argc, char **argv) {
+
+    int tick = 0;
+    int cycle = 0;
+    int i,j = 0;
+    FILE *fptr;
+    int file_size = 0;
+    int prev = 0;
+    uint32_t success_pc = 0;
+    VerilatedVcdC *tfp;
+
     // Initialize Verilators variables
     Verilated::commandArgs(argc, argv);
 
@@ -14,7 +24,7 @@ int main(int argc, char **argv) {
     Vleiwand_rv32_soc_tb_verilator *tb = new Vleiwand_rv32_soc_tb_verilator;
 
     Verilated::traceEverOn(true);
-    VerilatedVcdC *tfp = new VerilatedVcdC;
+    tfp = new VerilatedVcdC;
     tb->trace (tfp, 99);
     tfp->open ("leiwand_rv32_soc_tb_verilator.vcd");
 
@@ -29,13 +39,6 @@ int main(int argc, char **argv) {
         printf("ERROR: please specify success PC!\n");
         exit(1);
     }
-
-    int cycle = 0;
-    int i,j = 0;
-    FILE *fptr;
-    int file_size = 0;
-    int prev = 0;
-    uint32_t success_pc = 0;
 
     if ((fptr = fopen(argv[1],"rb")) == NULL){
         printf("ERROR: opening file\n");
@@ -59,82 +62,75 @@ int main(int argc, char **argv) {
     //     printf("mem: %x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
     // }
 
-    int tick = 0;
+    tb->i_rst = 0;
 
-    // Tick the clock until we are done
-    // while(!Verilated::gotFinish()) {
+    for(i=0;i<10;i++)
+    {
+        tfp->dump (2*tick);
+        tb->i_clk = 1;
+        tb->eval();
+        tick++;
 
-        tb->i_rst = 0;
+        tfp->dump (2*tick);
+        tb->i_clk = 0;
+        tb->eval();
+        tick++;
+    }
 
-        for(i=0;i<10;i++)
+    tb->i_rst = 1;
+
+    for(i=0;i<10;i++)
+    {
+        tfp->dump (tick);
+        tb->i_clk = 1;
+        tb->eval();
+        tick++;
+
+        tfp->dump (tick);
+        tb->i_clk = 0;
+        tb->eval();
+        tick++;
+    }
+
+    tb->i_rst = 0;
+
+    for(i=0;i<100000;i++)
+    {
+        if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage == 2)
         {
-            tfp->dump (2*tick);
-            tb->i_clk = 1;
-            tb->eval();
-            tick++;
+            printf("\n\n");
+            printf("cycle: %d\n", cycle);
+            printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
+            printf("pc: %x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
+            printf("instr: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
+            for(j=0;j<32;j++)
+                printf("x[%2d]: %08x\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
 
-            tfp->dump (2*tick);
-            tb->i_clk = 0;
-            tb->eval();
-            tick++;
+            cycle++;
         }
 
-        tb->i_rst = 1;
-
-        for(i=0;i<10;i++)
+        if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc == success_pc+4)
         {
-            tfp->dump (tick);
-            tb->i_clk = 1;
-            tb->eval();
-            tick++;
-
-            tfp->dump (tick);
-            tb->i_clk = 0;
-            tb->eval();
-            tick++;
+            break;
         }
 
-        tb->i_rst = 0;
+        tfp->dump (tick);
+        tb->i_clk = 1;
+        tb->eval();
+        tick++;
 
-        for(i=0;i<10000;i++)
-        {
-            if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage == 2)
-            {
-                printf("\n\n");
-                printf("cycle: %d\n", cycle);
-                printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
-                printf("pc: %x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
-                printf("instr: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
-                for(j=0;j<32;j++)
-                    printf("x[%2d]: %08x\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
+        tfp->dump (tick);
+        tb->i_clk = 0;
+        tb->eval();
+        tick++;
+    }
 
-                cycle++;
-            }
-
-            if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc == success_pc+4)
-            {
-                break;
-            }
-
-            tfp->dump (tick);
-            tb->i_clk = 1;
-            tb->eval();
-            tick++;
-
-            tfp->dump (tick);
-            tb->i_clk = 0;
-            tb->eval();
-            tick++;
-        }
-
-        if(i==10000)
-            printf("SOMETHING WENT WRONG!\n");
-        else
-        {
-            printf("SUCCESS!\n");
-        }
-
-    // }
+    if(i==100000)
+        printf("SOMETHING WENT WRONG!\n");
+    else
+    {
+        printf("SUCCESS!\n");
+    }
 
     tfp->close();
     tfp = NULL;
