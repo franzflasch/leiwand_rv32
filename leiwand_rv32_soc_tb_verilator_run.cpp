@@ -9,8 +9,6 @@
 #include <byteswap.h>
 #include <gdb_rsp.h>
 
-#define RISCV_32_REGS 32
-
 void riscv_cpu_g_packet(sds *buf, void *priv)
 {
     int i = 0;
