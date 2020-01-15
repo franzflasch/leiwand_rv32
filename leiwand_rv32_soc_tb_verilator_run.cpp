@@ -11,7 +11,7 @@
 
 void riscv_cpu_g_packet(sds *buf, void *priv)
 {
-    int i = 0;
+    size_t i = 0;
     Vleiwand_rv32_soc_tb_verilator *tb = (Vleiwand_rv32_soc_tb_verilator *)priv;
     for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x)/
                sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[0]));i++)
@@ -21,12 +21,16 @@ void riscv_cpu_g_packet(sds *buf, void *priv)
     *buf = sdscatprintf(*buf, "%08x", __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc));
 }
 
-void riscv_cpu_read_mem(sds *buf, size_t no_bytes, void *priv)
+void riscv_cpu_read_mem(sds *buf, size_t addr, size_t no_bytes, void *priv)
 {
     size_t i = 0;
-    for(i=0;i<no_bytes;i++)
+    Vleiwand_rv32_soc_tb_verilator *tb = (Vleiwand_rv32_soc_tb_verilator *)priv;
+    if( (addr >= 0x20400000) && (addr <= (0x20400000 + 4096)) )
     {
-        *buf = sdscatprintf(*buf, "%02x", 0);
+        for(i=0;i<no_bytes;i++)
+        {
+            *buf = sdscatprintf(*buf, "%02x", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+        }
     }
 }
 
