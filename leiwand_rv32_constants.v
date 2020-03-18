@@ -17,7 +17,7 @@
  */
 
 `define NR_RV_REGS 32
-`define MEM_WIDTH 32
+`define XLEN 32
 
 /* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
 /* https://static.dev.sifive.com/E31-Coreplex.pdf */

@@ -30,9 +30,9 @@ module leiwand_rv32_soc_tb_verilator(
 
     wire mem_valid;
     wire mem_ready;
-    wire [(`MEM_WIDTH-1):0] mem_addr;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
+    wire [(`XLEN-1):0] mem_addr;
+    wire [(`XLEN-1):0] mem_data_cpu_in;
+    wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [3:0] mem_wen;
 
     leiwand_rv32_core
@@ -54,7 +54,7 @@ module leiwand_rv32_soc_tb_verilator(
 		.clk(i_clk),
         .rst(i_rst),
 
-        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < `MEM_WIDTH'h20400000 + (4*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < `XLEN'h20400000 + (4*MEMORY_SIZE))),
         .ready(mem_ready),
 		.wen(mem_wen),
 		.addr(mem_addr[31:0]),

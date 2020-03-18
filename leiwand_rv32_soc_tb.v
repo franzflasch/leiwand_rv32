@@ -16,7 +16,7 @@
  *   along with leiwand_rv32.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-`timescale 1ns/1ps 
+`timescale 1ns/1ps
 
 `include "helper.v"
 `include "leiwand_rv32_constants.v"
@@ -30,16 +30,16 @@ module leiwand_rv32_core_tb();
 
     wire mem_valid;
     wire mem_ready;
-    wire [(`MEM_WIDTH-1):0] mem_addr;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
+    wire [(`XLEN-1):0] mem_addr;
+    wire [(`XLEN-1):0] mem_data_cpu_in;
+    wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [3:0] mem_wen;
 
-    wire [(`MEM_WIDTH-1):0] dummy_irq_status;
+    wire [(`XLEN-1):0] dummy_irq_status;
 
     leiwand_rv32_core
         cpu_core (
-            clk, 
+            clk,
             reset,
 
             mem_valid,
@@ -56,7 +56,7 @@ module leiwand_rv32_core_tb();
 		.clk(clk),
         .rst(reset),
 
-        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < `MEM_WIDTH'h20400000 + (4*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < `XLEN'h20400000 + (4*MEMORY_SIZE))),
         .ready(mem_ready),
 		.wen(mem_wen),
 		.addr(mem_addr[31:0]),
@@ -64,7 +64,7 @@ module leiwand_rv32_core_tb();
 		.rdata(mem_data_cpu_in)
 	);
 
-    initial begin 
+    initial begin
         clk=0;
         forever #2 clk=~clk;
     end
@@ -72,7 +72,7 @@ module leiwand_rv32_core_tb();
     `define SEEK_SET 0
     `define SEEK_CUR 1
     `define SEEK_END 2
-   
+
     integer i, j;
     integer file_size, file, tmp;
 
@@ -110,11 +110,11 @@ module leiwand_rv32_core_tb();
             $display("pc: %x", cpu_core.pc);
             $display("instr: %x", cpu_core.instruction);
 
-            for(j = 0; j < 32; j++ ) begin
+            for(j = 0; j < `NR_RV_REGS; j++ ) begin
                 $display("x[%2d]: %x", j, cpu_core.x[j]);
             end
 
-            if(cpu_core.pc == `SUCCESS_PC) begin 
+            if(cpu_core.pc == `SUCCESS_PC) begin
                 $display("SUCCESS!");
                 $finish;
             end
@@ -123,7 +123,7 @@ module leiwand_rv32_core_tb();
 
         $display("SOMETHING WENT WRONG!");
         $finish;
-    end 
+    end
 
     // initial begin
     //     $dumpfile("leiwand_rv32_soc_tb.vcd");
@@ -140,4 +140,4 @@ module leiwand_rv32_core_tb();
     //     // # 15000 $finish;
     // end
 
-endmodule 
+endmodule

@@ -16,7 +16,7 @@
  *   along with leiwand_rv32.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-`timescale 1ns/1ps 
+`timescale 1ns/1ps
 
 `include "helper.v"
 `include "leiwand_rv32_constants.v"
@@ -62,12 +62,12 @@ module leiwandrv32_soc_hx8k(
     inout  flash_io3
 );
 `endif
-    parameter RAM_SIZE = 128; /* MEM_WIDTH WORDS */
-    parameter FLASH_SIZE = `MEM_WIDTH'h1000 /* FLASH_SIZE WORDS */; 
+    parameter RAM_SIZE = 128; /* XLEN WORDS */
+    parameter FLASH_SIZE = `XLEN'h1000 /* FLASH_SIZE WORDS */;
 
 `ifdef TESTBENCH_MODE
     reg CLK = 0;
-    reg [(`MEM_WIDTH-1):0] clk_count = 0;
+    reg [(`XLEN-1):0] clk_count = 0;
     reg RST = 0;
     wire flash_csb;
     wire flash_clk;
@@ -78,7 +78,7 @@ module leiwandrv32_soc_hx8k(
     wire LED1;
     wire LED2;
 
-    initial begin 
+    initial begin
         CLK=0;
         forever #2 CLK=~CLK;
     end
@@ -128,7 +128,7 @@ module leiwandrv32_soc_hx8k(
     end
 
     always @(posedge system_clock) begin
-        if(!resetn) clk_count <= `MEM_WIDTH'h0;
+        if(!resetn) clk_count <= `XLEN'h0;
         else begin
             clk_count <= clk_count + 1;
 
@@ -153,18 +153,18 @@ module leiwandrv32_soc_hx8k(
 
     wire mem_valid;
     wire mem_ready;
-    wire [(`MEM_WIDTH-1):0] mem_addr;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_in;
-    wire [(`MEM_WIDTH-1):0] mem_data_cpu_out;
+    wire [(`XLEN-1):0] mem_addr;
+    wire [(`XLEN-1):0] mem_data_cpu_in;
+    wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [3:0] mem_wen;
-    wire [(`MEM_WIDTH-1):0] irq_status_wire;
+    wire [(`XLEN-1):0] irq_status_wire;
     wire irq_reset_flag_wire;
 
     clk_divn #(.WIDTH(32), .N(8)) slow_clk(CLK, system_clock);
 
-    leiwand_rv32_core # (.PC_START_VAL(`MEM_WIDTH'h100000))
+    leiwand_rv32_core # (.PC_START_VAL(`XLEN'h100000))
         cpu_core (
-            system_clock, 
+            system_clock,
             !resetn,
 
             mem_valid,
@@ -178,7 +178,7 @@ module leiwandrv32_soc_hx8k(
     );
 
     wire rom_ready;
-    wire [(`MEM_WIDTH-1):0] rom_rdata;
+    wire [(`XLEN-1):0] rom_rdata;
 
 `ifndef TESTBENCH_MODE
     wire flash_io0_oe, flash_io0_do, flash_io0_di;
@@ -196,12 +196,12 @@ module leiwandrv32_soc_hx8k(
         .D_IN_0({flash_io3_di, flash_io2_di, flash_io1_di, flash_io0_di})
     );
 
-    wire [(`MEM_WIDTH-1):0] spimemio_cfgreg_do;
+    wire [(`XLEN-1):0] spimemio_cfgreg_do;
 
     spimemio spimemio (
         .clk    (system_clock),
         .resetn (resetn),
-        .valid  (mem_valid && (mem_addr >= `MEM_WIDTH'h100000) && (mem_addr < (`MEM_WIDTH'h100000 + (4*FLASH_SIZE)))),
+        .valid  (mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + (4*FLASH_SIZE)))),
         .ready  (rom_ready),
         .addr   (mem_addr[23:0]),
         .rdata  (rom_rdata),
@@ -234,7 +234,7 @@ module leiwandrv32_soc_hx8k(
     ) internal_rom (
         .clk(system_clock),
         .rst(!resetn),
-        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h100000) && (mem_addr < (`MEM_WIDTH'h100000 + (4*FLASH_SIZE)))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + (4*FLASH_SIZE)))),
         .ready(rom_ready),
         .wen(mem_wen),
         .addr(mem_addr[31:0]),
@@ -245,14 +245,14 @@ module leiwandrv32_soc_hx8k(
 
 
     wire ram_ready;
-    wire [(`MEM_WIDTH-1):0] ram_rdata;
+    wire [(`XLEN-1):0] ram_rdata;
 
     simple_mem #(
         .WORDS(RAM_SIZE)
     ) internal_ram (
         .clk(system_clock),
         .rst(!resetn),
-        .valid(mem_valid && (mem_addr >= `MEM_WIDTH'h20400000) && (mem_addr < (`MEM_WIDTH'h20400000 + (4*RAM_SIZE)))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < (`XLEN'h20400000 + (4*RAM_SIZE)))),
         .ready(ram_ready),
         .wen(mem_wen),
         .addr(mem_addr[31:0]),
@@ -261,13 +261,13 @@ module leiwandrv32_soc_hx8k(
     );
 
 
-    reg [(`MEM_WIDTH-1):0] gpio_reg;
+    reg [(`XLEN-1):0] gpio_reg;
     reg gpio_ready;
 
     always @(posedge system_clock) begin
-        if(!resetn) gpio_reg <= `MEM_WIDTH'h0;
+        if(!resetn) gpio_reg <= `XLEN'h0;
         else begin
-            if(mem_valid && (mem_addr == `MEM_WIDTH'h30000000)) begin
+            if(mem_valid && (mem_addr == `XLEN'h30000000)) begin
                 if(mem_wen != 0) gpio_reg <= mem_data_cpu_out;
                 gpio_ready <= 1;
             end
@@ -275,18 +275,18 @@ module leiwandrv32_soc_hx8k(
         end
     end
 
-    reg [(`MEM_WIDTH-1):0] irq_status_reg;
+    reg [(`XLEN-1):0] irq_status_reg;
     reg irq_status_ready;
     reg irq_reset_flag;
 
     always @(posedge system_clock) begin
-        if(!resetn) irq_status_reg <= `MEM_WIDTH'h0;
+        if(!resetn) irq_status_reg <= `XLEN'h0;
         else begin
-            if(mem_valid && (mem_addr == `MEM_WIDTH'h40000000)) begin
+            if(mem_valid && (mem_addr == `XLEN'h40000000)) begin
                 if(mem_wen != 0) irq_status_reg <= mem_data_cpu_out;
                 irq_status_ready <= 1;
             end
-            else begin 
+            else begin
                 irq_status_ready <= 0;
             end
         end

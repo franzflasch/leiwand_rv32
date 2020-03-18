@@ -17,7 +17,7 @@ OUTPUT_DIR="$4"
 
 mkdir -p $OUTPUT_DIR
 
-riscv32-none-elf-gcc -march=rv32i \
+riscv32-none-elf-gcc -march=rv32i -g \
 	-I. -I${TESTS_DIR}/../macros/scalar/ -I${ENV_DIR}/ -Wl,-T,$LINKER_SCRIPT,-Bstatic -ffreestanding -nostdlib \
 	-o ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.elf ${TESTS_DIR}/${TEST_NAME}.S
 riscv32-none-elf-objcopy -O binary ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.elf ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.bin

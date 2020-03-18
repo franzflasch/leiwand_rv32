@@ -16,7 +16,7 @@
  *   along with leiwand_rv32.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-`timescale 1ns/1ps 
+`timescale 1ns/1ps
 
 `include "helper.v"
 `include "leiwand_rv32_constants.v"
@@ -34,7 +34,7 @@
 
 
 module leiwand_rv32_core # (
-        parameter PC_START_VAL = `MEM_WIDTH'h20400000 /* HiFive1 Value */
+        parameter PC_START_VAL = `XLEN'h20400000 /* HiFive1 Value */
     )
     (
         input i_clk,
@@ -43,9 +43,9 @@ module leiwand_rv32_core # (
         /* MEMORY INTERFACE */
         output o_mem_valid,
         input i_mem_ready,
-        output [(`MEM_WIDTH-1):0] o_mem_addr,
-        input [(`MEM_WIDTH-1):0] i_mem_data,
-        output [(`MEM_WIDTH-1):0] o_mem_data,
+        output [(`XLEN-1):0] o_mem_addr,
+        input [(`XLEN-1):0] i_mem_data,
+        output [(`XLEN-1):0] o_mem_data,
         output [3:0] o_mem_wen
     );
 
@@ -61,7 +61,7 @@ module leiwand_rv32_core # (
 
         reg is_CSRRW;
         reg is_CSRRS;
-        reg is_CSRRC;        
+        reg is_CSRRC;
         reg is_CSRRWI;
         reg is_CSRRSI;
         reg is_CSRRCI;
@@ -78,9 +78,9 @@ module leiwand_rv32_core # (
         localparam MTVAL = 6;
         localparam MIP = 7;
 
-        reg [(`MEM_WIDTH-1):0] csr[(MIP-1):0];
+        reg [(`XLEN-1):0] csr[(MIP-1):0];
 
-        //function automatic [(`MEM_WIDTH-1):0] csr_reg_val;
+        //function automatic [(`XLEN-1):0] csr_reg_val;
         function [`HIGH_BIT_TO_FIT(MIP):0] csr_reg_to_internal_index;
             input [11:0] i_reg_nr;
             begin
@@ -124,25 +124,25 @@ module leiwand_rv32_core # (
     localparam STAGE_INSTR_WRITEBACK = 5;
     reg [`HIGH_BIT_TO_FIT(STAGE_INSTR_WRITEBACK):0] cpu_stage;
 
-    /* RISC-V Registers x0-x31 */    
-    reg [(`MEM_WIDTH-1):0] x[(`NR_RV_REGS-1):0];
-    reg [(`MEM_WIDTH-1):0] pc;
+    /* RISC-V Registers x0-x31 */
+    reg [(`XLEN-1):0] x[(`NR_RV_REGS-1):0];
+    reg [(`XLEN-1):0] pc;
 
     /* verilator lint_off UNUSED */
-    reg [(`MEM_WIDTH-1):0] instruction;
+    reg [(`XLEN-1):0] instruction;
 
     /* opcode registers */
-    reg [(`MEM_WIDTH-1):0] next_pc;
+    reg [(`XLEN-1):0] next_pc;
     reg [4:0] rs1;
     reg [4:0] rs2_shamt;
     reg [4:0] rd;
-    reg [(`MEM_WIDTH-1):0] immediate;
+    reg [(`XLEN-1):0] immediate;
 
     /* bus signals */
     reg mem_valid;
-    reg [(`MEM_WIDTH-1):0] mem_addr_out;
-    reg [(`MEM_WIDTH-1):0] mem_data_in;
-    reg [(`MEM_WIDTH-1):0] mem_data_out;
+    reg [(`XLEN-1):0] mem_addr_out;
+    reg [(`XLEN-1):0] mem_data_in;
+    reg [(`XLEN-1):0] mem_data_out;
     reg [3:0] mem_wen;
     reg mem_access;
 
@@ -224,18 +224,18 @@ module leiwand_rv32_core # (
     /* ALU */
     reg alu_result_slt;
     reg alu_result_sltu;
-    reg [(`MEM_WIDTH-1):0] alu_result_xor;
-    reg [(`MEM_WIDTH-1):0] alu_result_or;
-    reg [(`MEM_WIDTH-1):0] alu_result_and;
-    reg [(`MEM_WIDTH-1):0] alu_result_sl;
-    reg [(`MEM_WIDTH):0] alu_result_sr;
-    reg [(`MEM_WIDTH-1):0] alu_result_sub;
-    reg [(`MEM_WIDTH-1):0] alu_result_add;
-    reg [(`MEM_WIDTH-1):0] alu_op1;
-    reg [(`MEM_WIDTH-1):0] alu_op2;
+    reg [(`XLEN-1):0] alu_result_xor;
+    reg [(`XLEN-1):0] alu_result_or;
+    reg [(`XLEN-1):0] alu_result_and;
+    reg [(`XLEN-1):0] alu_result_sl;
+    reg [(`XLEN):0] alu_result_sr;
+    reg [(`XLEN-1):0] alu_result_sub;
+    reg [(`XLEN-1):0] alu_result_add;
+    reg [(`XLEN-1):0] alu_op1;
+    reg [(`XLEN-1):0] alu_op2;
 
-    reg [(`MEM_WIDTH-1):0] alu_branch_op1;
-    reg [(`MEM_WIDTH-1):0] alu_branch_op2;
+    reg [(`XLEN-1):0] alu_branch_op1;
+    reg [(`XLEN-1):0] alu_branch_op2;
     reg alu_branch_eq;
     reg alu_branch_ge;
     reg alu_branch_geu;
@@ -244,7 +244,7 @@ module leiwand_rv32_core # (
     always @(posedge i_clk) begin
         if(i_rst) begin
             /* Initialize all general purpose regs */
-            x[0]  <= 0; 
+            x[0]  <= 0;
             x[1]  <= 0;
             x[2]  <= 0;
             x[3]  <= 0;
@@ -471,7 +471,7 @@ module leiwand_rv32_core # (
 
                             mem_access <= 1;
                             mem_valid <= 1;
-                            
+
                             cpu_stage <= (is_store) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
 
@@ -479,13 +479,13 @@ module leiwand_rv32_core # (
 
                             if (is_LUI) x[rd] <= immediate;
                             else if(is_branch_op) begin
-                                if(take_branch) begin 
-                                    next_pc <= alu_result; 
+                                if(take_branch) begin
+                                    next_pc <= alu_result;
                                 end
                             end
-                            else if (is_JAL || is_JALR) begin 
-                                x[rd] <= next_pc; 
-                                next_pc <= alu_result; 
+                            else if (is_JAL || is_JALR) begin
+                                x[rd] <= next_pc;
+                                next_pc <= alu_result;
                             end
                             else if (is_LB) begin
                                 case (mem_addr_out[1:0])
@@ -516,16 +516,16 @@ module leiwand_rv32_core # (
                                 else if (is_csr_op) begin
                                     x[rd] <= csr[csr_reg_to_internal_index(immediate[11:0])];
                                     if (is_CSRRW | is_CSRRWI) begin
-                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRWI ? { {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] } : x[rs1[4:0]];
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRWI ? { {(`XLEN-5){1'b0}}, rs1[4:0] } : x[rs1[4:0]];
                                     end
                                     else if (is_CSRRS | is_CSRRSI) begin
-                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRSI ? 
-                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] | { {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] } : 
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRSI ?
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] | { {(`XLEN-5){1'b0}}, rs1[4:0] } :
                                                                                            csr[csr_reg_to_internal_index(immediate[11:0])] | x[rs1[4:0]];
                                     end
                                     else if (is_CSRRC | is_CSRRCI) begin
-                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRCI ? 
-                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] & (~{ {(`MEM_WIDTH-5){1'b0}}, rs1[4:0] }) : 
+                                        csr[csr_reg_to_internal_index(immediate[11:0])] <= is_CSRRCI ?
+                                                                                           csr[csr_reg_to_internal_index(immediate[11:0])] & (~{ {(`XLEN-5){1'b0}}, rs1[4:0] }) :
                                                                                            csr[csr_reg_to_internal_index(immediate[11:0])] & ~x[rs1[4:0]];
                                     end
                                 end
@@ -545,7 +545,7 @@ module leiwand_rv32_core # (
             end
 
             /* reset x0 to zero, as theoretically in this implementation it can be set to any value */
-            x[0] <= 0; 
+            x[0] <= 0;
         end
     end
 
@@ -556,10 +556,10 @@ module leiwand_rv32_core # (
     assign is_branch_op = (is_BEQ | is_BNE | is_BLT | is_BGE | is_BLTU | is_BGEU);
 
     wire take_branch;
-    assign take_branch = ( (is_BEQ && alu_branch_eq) || 
-                           (is_BNE && !alu_branch_eq) || 
+    assign take_branch = ( (is_BEQ && alu_branch_eq) ||
+                           (is_BNE && !alu_branch_eq) ||
                            (is_BLT && !alu_branch_ge) ||
-                           (is_BGE && alu_branch_ge) || 
+                           (is_BGE && alu_branch_ge) ||
                            (is_BLTU && !alu_branch_geu) ||
                            (is_BGEU && alu_branch_geu) );
 
@@ -586,7 +586,7 @@ module leiwand_rv32_core # (
     wire alu_is_sl_op;
     wire alu_is_sr_op;
     wire alu_is_sub_op;
-    wire [(`MEM_WIDTH-1):0] alu_result;
+    wire [(`XLEN-1):0] alu_result;
 
     assign alu_result = ( alu_is_slt_op ? { {31{1'b0}},alu_result_slt } :
                           alu_is_sltu_op ? { {31{1'b0}},alu_result_sltu } :
