@@ -17,7 +17,14 @@
  */
 
 `define NR_RV_REGS 32
-`define XLEN 32
+
+`define RV64
+
+`ifdef RV64
+    `define XLEN 64
+`else
+    `define XLEN 32
+`endif
 
 /* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
 /* https://static.dev.sifive.com/E31-Coreplex.pdf */

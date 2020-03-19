@@ -1,6 +1,8 @@
 #!/bin/bash
 
-TESTS_DIR="riscv-tests/isa/rv32ui"
+ARCH="64"
+
+TESTS_DIR="riscv-tests/isa/rv${ARCH}ui"
 ENV_DIR="riscv-tests/env"
 
 if [ "$#" -ne 4 ]; then
@@ -17,7 +19,7 @@ OUTPUT_DIR="$4"
 
 mkdir -p $OUTPUT_DIR
 
-riscv32-none-elf-gcc -march=rv32i -g \
+riscv${ARCH}-none-elf-gcc -march=rv${ARCH}i -g \
 	-I. -I${TESTS_DIR}/../macros/scalar/ -I${ENV_DIR}/ -Wl,-T,$LINKER_SCRIPT,-Bstatic -ffreestanding -nostdlib \
 	-o ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.elf ${TESTS_DIR}/${TEST_NAME}.S
-riscv32-none-elf-objcopy -O binary ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.elf ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.bin
+riscv${ARCH}-none-elf-objcopy -O binary ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.elf ${OUTPUT_DIR}/${TEST_NAME}_${OUTPUT_FILE}.bin

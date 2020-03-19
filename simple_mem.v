@@ -19,7 +19,8 @@
 `timescale 1ns/1ps
 
 module simple_mem #(
-    parameter integer WORDS = 256
+    parameter integer WORDS = 256,
+    parameter integer WIDTH = 32
 ) (
     input clk,
     input rst,
@@ -27,11 +28,11 @@ module simple_mem #(
     output reg ready,
     input [3:0] wen,
     /* verilator lint_off UNUSED */
-    input [31:0] addr,
-    input [31:0] wdata,
-    output reg [31:0] rdata
+    input [(WIDTH-1):0] addr,
+    input [(WIDTH-1):0] wdata,
+    output reg [(WIDTH-1):0] rdata
 );
-    reg [31:0] mem [WORDS-1:0];
+    reg [(WIDTH-1):0] mem [WORDS-1:0];
 
     always @(posedge clk) begin
         if(rst) begin

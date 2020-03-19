@@ -48,18 +48,19 @@ module leiwand_rv32_soc_tb_verilator(
             .o_mem_wen(mem_wen)
     );
 
-	simple_mem #(
-		.WORDS(MEMORY_SIZE)
-	) internal_rom (
-		.clk(i_clk),
+    simple_mem #(
+        .WORDS(MEMORY_SIZE),
+        .WIDTH(`XLEN)
+    ) internal_rom (
+        .clk(i_clk),
         .rst(i_rst),
 
-        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < `XLEN'h20400000 + (4*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + (4*MEMORY_SIZE))),
         .ready(mem_ready),
-		.wen(mem_wen),
-		.addr(mem_addr[31:0]),
-		.wdata(mem_data_cpu_out),
-		.rdata(mem_data_cpu_in)
-	);
+        .wen(mem_wen),
+        .addr(mem_addr[(`XLEN-1):0]),
+        .wdata(mem_data_cpu_out[(`XLEN-1):0]),
+        .rdata(mem_data_cpu_in[(`XLEN-1):0])
+    );
 
 endmodule

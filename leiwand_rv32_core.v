@@ -34,7 +34,7 @@
 
 
 module leiwand_rv32_core # (
-        parameter PC_START_VAL = `XLEN'h20400000 /* HiFive1 Value */
+        parameter PC_START_VAL = `XLEN'h80000000 /* QEMU virt machine Value */
     )
     (
         input i_clk,
@@ -171,11 +171,17 @@ module leiwand_rv32_core # (
     localparam FUNC3_ORI = 3'b110;
     localparam FUNC3_ANDI = 3'b111;
     localparam FUNC3_SLLI = 3'b001;
-    localparam FUNC7_SLLI = 7'b0000000;
     localparam FUNC3_SRLI = 3'b101;
-    localparam FUNC7_SRLI = 7'b0000000;
     localparam FUNC3_SRAI = 3'b101;
-    localparam FUNC7_SRAI = 7'b0100000;
+    `ifdef RV64
+        localparam FUNC7_SLLI = 6'b000000;
+        localparam FUNC7_SRLI = 6'b000000;
+        localparam FUNC7_SRAI = 6'b010000;
+    `else
+        localparam FUNC7_SLLI = 7'b0000000;
+        localparam FUNC7_SRLI = 7'b0000000;
+        localparam FUNC7_SRAI = 7'b0100000;
+    `endif
 
     localparam OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND = 7'b0110011;
     localparam FUNC3_ADD = 3'b000;
@@ -210,6 +216,14 @@ module leiwand_rv32_core # (
     localparam FUNC3_SB = 3'b000;
     localparam FUNC3_SH = 3'b001;
     localparam FUNC3_SW = 3'b010;
+
+    /* Additional RV64 instructions */
+    `ifdef RV64
+        localparam OP_ADDIW_SLLIW_SRLIW_SRAIW = 7'b0011011;
+        localparam FUNC3_ADDIW = 3'b000;
+        reg is_ADDIW;
+        reg [5:0] shamt_rv64;
+    `endif
 
     reg is_LUI;
     reg is_AUIPC;
@@ -249,13 +263,13 @@ module leiwand_rv32_core # (
             x[2]  <= 0;
             x[3]  <= 0;
             x[4]  <= 0;
-            x[5] <= PC_START_VAL;
+            x[5] <= PC_START_VAL; /* This is needed because the qemu virt machine sets this */
             x[6]  <= 0;
             x[7]  <= 0;
             x[8]  <= 0;
             x[9]  <= 0;
             x[10] <= 0;
-            x[11] <= 0;
+            x[11] <= `XLEN'h00001020; /* This is needed because the qemu virt machine sets this */
             x[12] <= 0;
             x[13] <= 0;
             x[14] <= 0;
@@ -341,9 +355,19 @@ module leiwand_rv32_core # (
                             is_XORI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_XORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
                             is_ORI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ORI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
                             is_ANDI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ANDI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SLLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SRLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
-                            is_SRAI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+
+                            `ifdef RV64
+                                shamt_rv64[5:0] <= mem_data_in[25:20];
+                                is_SLLI <= ({mem_data_in[31:26],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                                is_SRLI <= ({mem_data_in[31:26],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                                is_SRAI <= ({mem_data_in[31:26],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+
+                                is_ADDIW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ADDIW, OP_ADDIW_SLLIW_SRLIW_SRAIW} ) ? 1 : 0;
+                            `else
+                                is_SLLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                                is_SRLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                                is_SRAI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
+                            `endif
 
                             is_ADD <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_ADD, FUNC3_ADD, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
                             is_SUB <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SUB, FUNC3_SUB, OP_ADD_SUB_SLL_SLT_SLTU_XOR_SRL_SRA_OR_AND} ) ? 1 : 0;
@@ -379,27 +403,27 @@ module leiwand_rv32_core # (
 
                                 /* S-type */
                                 OP_SB_SH_SW: begin
-                                    immediate <= { {20{mem_data_in[31]}}, mem_data_in[31:25], mem_data_in[11:7] };
+                                    immediate <= { {(`XLEN-12){mem_data_in[31]}}, mem_data_in[31:25], mem_data_in[11:7] };
                                 end
 
                                 /* B-type */
                                 OP_BEQ_BNE_BLT_BGE_BLTU_BGEU: begin
-                                    immediate <= { {20{mem_data_in[31]}}, mem_data_in[7], mem_data_in[30:25], mem_data_in[11:8], 1'b0 };
+                                    immediate <= { {(`XLEN-12){mem_data_in[31]}}, mem_data_in[7], mem_data_in[30:25], mem_data_in[11:8], 1'b0 };
                                 end
 
                                 /* U-type */
                                 OP_LUI,
                                 OP_AUIPC: begin
-                                    immediate <= { mem_data_in[31:12], 12'b0};
+                                    immediate <= { {(`XLEN-31){mem_data_in[31]}}, mem_data_in[30:12], 12'b0};
                                 end
 
                                 /* J-type */
                                 OP_JAL: begin
-                                    immediate <= { {11{mem_data_in[31]}}, mem_data_in[19:12], mem_data_in[20], mem_data_in[31:21], 1'b0 };
+                                    immediate <= { {(`XLEN-21){mem_data_in[31]}}, mem_data_in[19:12], mem_data_in[20], mem_data_in[31:21], 1'b0 };
                                 end
 
                                 /* I-type */
-                                default: immediate <= { {20{mem_data_in[31]}}, mem_data_in[31:20] };
+                                default: immediate <= { {(`XLEN-12){mem_data_in[31]}}, mem_data_in[31:20] };
 
                             endcase
 
@@ -420,7 +444,11 @@ module leiwand_rv32_core # (
                             end
 
                             if(is_alu_shift_immediate) begin
-                                alu_op2 <= { {27{1'b0}}, rs2_shamt };
+                                `ifdef RV64
+                                    alu_op2 <= { {(`XLEN-6){1'b0}}, shamt_rv64 };
+                                `else
+                                    alu_op2 <= { {(`XLEN-5){1'b0}}, rs2_shamt };
+                                `endif
                             end
                             else if(is_alu_logic || is_alu_shift) begin
                                 alu_op2 <= x[rs2_shamt];
@@ -437,7 +465,7 @@ module leiwand_rv32_core # (
                             alu_result_xor <= alu_op1 ^ alu_op2;
                             alu_result_or <= alu_op1 | alu_op2;
                             alu_result_and <= alu_op1 & alu_op2;
-                            alu_result_sl <= alu_op1 << alu_op2[4:0];
+                            alu_result_sl <= alu_op1 << alu_op2[5:0];
                             alu_result_sr <= $signed({is_SRA || is_SRAI ? alu_op1[31] : 1'b0, alu_op1}) >>> alu_op2[4:0];
                             alu_result_sub <= alu_op1 - alu_op2;
                             alu_result_add <= alu_op1 + alu_op2;
@@ -489,28 +517,28 @@ module leiwand_rv32_core # (
                             end
                             else if (is_LB) begin
                                 case (mem_addr_out[1:0])
-                                    1: x[rd] <= { {24{mem_data_in[15]}}, mem_data_in[15:8] };
-                                    2: x[rd] <= { {24{mem_data_in[23]}},mem_data_in[23:16] };
-                                    3: x[rd] <= { {24{mem_data_in[31]}},mem_data_in[31:24] };
-                                    default: x[rd] <= { {24{mem_data_in[7]}},mem_data_in[7:0] };
+                                    1: x[rd] <= { {(`XLEN-8){mem_data_in[15]}}, mem_data_in[15:8] };
+                                    2: x[rd] <= { {(`XLEN-8){mem_data_in[23]}},mem_data_in[23:16] };
+                                    3: x[rd] <= { {(`XLEN-8){mem_data_in[31]}},mem_data_in[31:24] };
+                                    default: x[rd] <= { {(`XLEN-8){mem_data_in[7]}},mem_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LH) begin
-                                x[rd] <= (mem_addr_out[1]) ? {{16{mem_data_in[31]}},mem_data_in[31:16]} : {{16{mem_data_in[15]}},mem_data_in[15:0]};
+                                x[rd] <= (mem_addr_out[1]) ? {{(`XLEN-16){mem_data_in[31]}},mem_data_in[31:16]} : {{(`XLEN-16){mem_data_in[15]}},mem_data_in[15:0]};
                             end
                             else if (is_LW) begin
-                                x[rd] <= mem_data_in;
+                                x[rd] <= { {(`XLEN-31){mem_data_in[31]}},mem_data_in[30:0] };
                             end
                             else if (is_LBU) begin
                                 case (mem_addr_out[1:0])
-                                    1: x[rd] <= { {24{1'b0}},mem_data_in[15:8] };
-                                    2: x[rd] <= { {24{1'b0}},mem_data_in[23:16] };
-                                    3: x[rd] <= { {24{1'b0}},mem_data_in[31:24] };
-                                    default: x[rd] <= { {24{1'b0}},mem_data_in[7:0] };
+                                    1: x[rd] <= { {(`XLEN-8){1'b0}},mem_data_in[15:8] };
+                                    2: x[rd] <= { {(`XLEN-8){1'b0}},mem_data_in[23:16] };
+                                    3: x[rd] <= { {(`XLEN-8){1'b0}},mem_data_in[31:24] };
+                                    default: x[rd] <= { {(`XLEN-8){1'b0}},mem_data_in[7:0] };
                                 endcase
                             end
                             else if (is_LHU) begin
-                                x[rd] <= { {16{1'b0}}, (mem_addr_out[1]) ? mem_data_in[31:16] : mem_data_in[15:0] };
+                                x[rd] <= { {(`XLEN-16){1'b0}}, (mem_addr_out[1]) ? mem_data_in[31:16] : mem_data_in[15:0] };
                             end
                             `ifdef ENABLE_CSR_REGS
                                 else if (is_csr_op) begin
@@ -588,14 +616,17 @@ module leiwand_rv32_core # (
     wire alu_is_sub_op;
     wire [(`XLEN-1):0] alu_result;
 
-    assign alu_result = ( alu_is_slt_op ? { {31{1'b0}},alu_result_slt } :
-                          alu_is_sltu_op ? { {31{1'b0}},alu_result_sltu } :
+    assign alu_result = ( alu_is_slt_op ? { {(`XLEN-1){1'b0}},alu_result_slt } :
+                          alu_is_sltu_op ? { {(`XLEN-1){1'b0}},alu_result_sltu } :
                           alu_is_xor_op ? alu_result_xor :
                           alu_is_or_op ? alu_result_or :
                           alu_is_and_op ? alu_result_and :
                           alu_is_sl_op ? alu_result_sl :
-                          alu_is_sr_op ? alu_result_sr[31:0] :
+                          alu_is_sr_op ? alu_result_sr[(`XLEN-1):0] :
                           alu_is_sub_op ? alu_result_sub :
+                          `ifdef RV64
+                          is_ADDIW ? { {(`XLEN-31){alu_result_add[31]}},alu_result_add[30:0] } :
+                          `endif
                           alu_result_add );
 
     assign alu_is_slt_op = (is_SLT | is_SLTI);

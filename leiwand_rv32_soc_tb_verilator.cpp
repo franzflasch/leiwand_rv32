@@ -54,13 +54,17 @@ int main(int argc, char **argv) {
 
     //printf("file_size: %d success pc: %x\n", file_size, success_pc);
 
-    fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem), 1, fptr);
+    for(i=0;i<sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]);i++)
+    {
+        tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = 0;
+        fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i], 4, 1, fptr);
+    }
 
-    // for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]));i++)
-    // {
-    //     //tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
-    //     printf("mem: %x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
-    // }
+    for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]));i++)
+    {
+        //tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+        printf("mem: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+    }
 
     tb->i_rst = 0;
 
@@ -101,10 +105,10 @@ int main(int argc, char **argv) {
             printf("\n\n");
             printf("cycle: %d\n", cycle);
             printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
-            printf("pc: %x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
-            printf("instr: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
+            printf("pc: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
+            printf("instr: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
             for(j=0;j<32;j++)
-                printf("x[%2d]: %08x\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
+                printf("x[%2d]: %016lx\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
 
             cycle++;
         }

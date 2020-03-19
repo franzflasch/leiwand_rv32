@@ -50,19 +50,20 @@ module leiwand_rv32_core_tb();
             mem_wen
     );
 
-	simple_mem #(
-		.WORDS(MEMORY_SIZE)
-	) internal_rom (
-		.clk(clk),
+    simple_mem #(
+        .WORDS(MEMORY_SIZE),
+        .WIDTH(`XLEN)
+    ) internal_rom (
+        .clk(clk),
         .rst(reset),
 
-        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < `XLEN'h20400000 + (4*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + (4*MEMORY_SIZE))),
         .ready(mem_ready),
-		.wen(mem_wen),
-		.addr(mem_addr[31:0]),
-		.wdata(mem_data_cpu_out),
-		.rdata(mem_data_cpu_in)
-	);
+        .wen(mem_wen),
+        .addr(mem_addr[(`XLEN-1):0]),
+        .wdata(mem_data_cpu_out[(`XLEN-1):0]),
+        .rdata(mem_data_cpu_in[(`XLEN-1):0])
+    );
 
     initial begin
         clk=0;
@@ -75,6 +76,7 @@ module leiwand_rv32_core_tb();
 
     integer i, j;
     integer file_size, file, tmp;
+    reg [(32-1):0] tmp_mem [MEMORY_SIZE-1:0];
 
     initial begin
 
@@ -83,12 +85,15 @@ module leiwand_rv32_core_tb();
         file_size = $fseek(file, 0, `SEEK_END); /* End of file */
         file_size = $ftell(file);
         tmp = $fseek(file, 0, `SEEK_SET);
-        tmp = $fread(internal_rom.mem, file, 0, file_size);
+        tmp = $fread(tmp_mem, file, 0, file_size);
 
         $display("file size: %d", file_size);
 
         for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            internal_rom.mem[i] = {{internal_rom.mem[i][07:00]}, {internal_rom.mem[i][15:08]}, {internal_rom.mem[i][23:16]}, {internal_rom.mem[i][31:24]}};
+            internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
+            // if(`XLEN == 64) begin
+            //     internal_rom.mem[i][63:32] = {{internal_rom.mem[i][39:32]}, {internal_rom.mem[i][47:40]}, {internal_rom.mem[i][55:48]}, {internal_rom.mem[i][63:56]}};
+            // end
             $display ("internal ram %d: %x", i, internal_rom.mem[i]);
         end
 

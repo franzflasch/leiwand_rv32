@@ -9,6 +9,10 @@
   .macro init;                         \
   .endm
 
+#define RVTEST_RV64U                                                    \
+  .macro init;                                                          \
+  .endm
+
 #define RVTEST_CODE_BEGIN \
 	.globl _start;          \
 _start:                   \
