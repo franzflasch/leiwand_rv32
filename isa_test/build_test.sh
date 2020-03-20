@@ -1,12 +1,7 @@
 #!/bin/bash
 
-ARCH="64"
-
-TESTS_DIR="riscv-tests/isa/rv${ARCH}ui"
-ENV_DIR="riscv-tests/env"
-
-if [ "$#" -ne 4 ]; then
-	echo "Usage: $0 <test_name> <linker_script> <output_filename> <output_dir>" >&2
+if [ "$#" -ne 5 ]; then
+	echo "Usage: $0 <test_name> <linker_script> <output_filename> <output_dir> <ARCH>" >&2
 	echo "Example (leiwandrv32): ./build_test.sh addi link_leiwandrv32.ld leiwandrv32 test_output"
 	echo "Example (qemu): ./build_test.sh addi link_qemu.ld qemu test_output"
 	exit 1
@@ -16,6 +11,10 @@ TEST_NAME="$1"
 LINKER_SCRIPT="$2"
 OUTPUT_FILE="$3"
 OUTPUT_DIR="$4"
+ARCH="$5"
+
+TESTS_DIR="riscv-tests/isa/rv${ARCH}ui"
+ENV_DIR="riscv-tests/env"
 
 mkdir -p $OUTPUT_DIR
 

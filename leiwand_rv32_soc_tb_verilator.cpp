@@ -6,6 +6,12 @@
 #include <verilated.h>
 #include <verilated_vcd_c.h>
 
+#ifdef RV64
+#define PRINTF_FMT "%016lx"
+#else
+#define PRINTF_FMT "%08x"
+#endif
+
 int main(int argc, char **argv) {
 
     int tick = 0;
@@ -57,13 +63,13 @@ int main(int argc, char **argv) {
     for(i=0;i<sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]);i++)
     {
         tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = 0;
-        fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i], 4, 1, fptr);
+        fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]), 1, fptr);
     }
 
     for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]));i++)
     {
         //tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
-        printf("mem: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+        printf("mem: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
     }
 
     tb->i_rst = 0;
@@ -105,10 +111,10 @@ int main(int argc, char **argv) {
             printf("\n\n");
             printf("cycle: %d\n", cycle);
             printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
-            printf("pc: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
-            printf("instr: %016lx\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
+            printf("pc: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
+            printf("instr: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
             for(j=0;j<32;j++)
-                printf("x[%2d]: %016lx\n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
+                printf("x[%2d]: " PRINTF_FMT" \n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
 
             cycle++;
         }

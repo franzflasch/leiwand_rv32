@@ -1,5 +1,11 @@
 #!/bin/bash
 
+if [ "$#" -ne 1 ]; then
+	echo "Usage: $0 <ARCH>" >&2
+	exit 1
+fi
+
+ARCH="$1"
 
 tests=(
 lui
@@ -51,15 +57,13 @@ and
 #csrrci
 )
 
-ARCH="64"
-
 mkdir -p qemu_compiled_files
 mkdir -p qemu_traces
 mkdir -p qemu_register_states
 
 for i in "${tests[@]}"
 do
-    ./build_test.sh $i link_qemu.ld qemu qemu_compiled_files
+    ./build_test.sh $i link_qemu.ld qemu qemu_compiled_files ${ARCH}
 done
 
 for i in "${tests[@]}"

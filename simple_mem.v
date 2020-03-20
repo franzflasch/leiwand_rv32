@@ -18,6 +18,8 @@
 
 `timescale 1ns/1ps
 
+`include "leiwand_rv32_constants.v"
+
 module simple_mem #(
     parameter integer WORDS = 256,
     parameter integer WIDTH = 32
@@ -47,7 +49,20 @@ module simple_mem #(
         end
         else begin
             if(valid) begin
-                rdata <= mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+2:2]];
+
+                /* Check if we are in a odd access */
+                `ifdef RV64
+                    if(addr[2]) begin
+                        rdata[31:0] <= mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+3:3]][63:32];
+                        rdata[63:32] <= mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+3:3]+1][31:0];
+                    end
+                    else begin
+                        rdata <= mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+3:3]];
+                    end
+                `else
+                    rdata <= mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+2:2]];
+                `endif
+
                 if (wen[0]) mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+2:2]][ 7: 0] <= wdata[ 7: 0];
                 if (wen[1]) mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+2:2]][15: 8] <= wdata[15: 8];
                 if (wen[2]) mem[addr[(`HIGH_BIT_TO_FIT(WORDS)-1)+2:2]][23:16] <= wdata[23:16];

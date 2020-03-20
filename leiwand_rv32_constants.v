@@ -18,7 +18,7 @@
 
 `define NR_RV_REGS 32
 
-`define RV64
+//`define RV64
 
 `ifdef RV64
     `define XLEN 64

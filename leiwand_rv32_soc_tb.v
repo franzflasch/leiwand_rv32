@@ -76,7 +76,7 @@ module leiwand_rv32_core_tb();
 
     integer i, j;
     integer file_size, file, tmp;
-    reg [(32-1):0] tmp_mem [MEMORY_SIZE-1:0];
+    reg [(`XLEN-1):0] tmp_mem [MEMORY_SIZE-1:0];
 
     initial begin
 
@@ -90,10 +90,13 @@ module leiwand_rv32_core_tb();
         $display("file size: %d", file_size);
 
         for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
-            // if(`XLEN == 64) begin
-            //     internal_rom.mem[i][63:32] = {{internal_rom.mem[i][39:32]}, {internal_rom.mem[i][47:40]}, {internal_rom.mem[i][55:48]}, {internal_rom.mem[i][63:56]}};
-            // end
+            //internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
+            `ifdef RV64
+                internal_rom.mem[i][63:32] = { {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
+                internal_rom.mem[i][31:0] = {{tmp_mem[i][39:32]}, {tmp_mem[i][47:40]}, {tmp_mem[i][55:48]}, {tmp_mem[i][63:56]}};
+            `else
+                internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
+            `endif
             $display ("internal ram %d: %x", i, internal_rom.mem[i]);
         end
 

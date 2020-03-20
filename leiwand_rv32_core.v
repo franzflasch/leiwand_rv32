@@ -332,6 +332,7 @@ module leiwand_rv32_core # (
 
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
+                            $display("mem_data_in: %x", mem_data_in);
 
                             rs1[4:0] <= mem_data_in[19:15];
                             rs2_shamt[4:0] <= mem_data_in[24:20];
