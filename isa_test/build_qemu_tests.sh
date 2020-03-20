@@ -45,6 +45,15 @@ srl
 sra
 or
 and
+addiw
+slliw
+srliw
+sraiw
+addw
+subw
+sllw
+srlw
+sraw
 #fence
 #fence_i
 #ecall

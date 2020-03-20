@@ -174,9 +174,45 @@ module leiwand_rv32_core # (
     localparam FUNC3_SRLI = 3'b101;
     localparam FUNC3_SRAI = 3'b101;
     `ifdef RV64
+        reg [31:0] alu_result_slw;
+        reg [32:0] alu_result_srw;
+        reg [5:0] shamt_rv64;
+
+        reg is_ADDIW;
+        reg is_SLLIW;
+        reg is_SRLIW;
+        reg is_SRAIW;
+
+        reg is_ADDW;
+        reg is_SUBW;
+        reg is_SLLW;
+        reg is_SRLW;
+        reg is_SRAW;
+
         localparam FUNC7_SLLI = 6'b000000;
         localparam FUNC7_SRLI = 6'b000000;
         localparam FUNC7_SRAI = 6'b010000;
+
+        localparam OP_ADDIW_SLLIW_SRLIW_SRAIW = 7'b0011011;
+        localparam FUNC7_SLLIW = 7'b0000000;
+        localparam FUNC7_SRLIW = 7'b0000000;
+        localparam FUNC7_SRAIW = 7'b0100000;
+        localparam FUNC3_SLLIW = 3'b001;
+        localparam FUNC3_SRLIW = 3'b101;
+        localparam FUNC3_SRAIW = 3'b101;
+        localparam FUNC3_ADDIW = 3'b000;
+
+        localparam OP_ADDW_SUBW_SLLW_SRLW_SRAW = 7'b0111011;
+        localparam FUNC7_ADDW = 7'b0000000;
+        localparam FUNC7_SUBW = 7'b0100000;
+        localparam FUNC7_SLLW = 7'b0000000;
+        localparam FUNC7_SRLW = 7'b0000000;
+        localparam FUNC7_SRAW = 7'b0100000;
+        localparam FUNC3_ADDW = 3'b000;
+        localparam FUNC3_SUBW = 3'b000;
+        localparam FUNC3_SLLW = 3'b001;
+        localparam FUNC3_SRLW = 3'b101;
+        localparam FUNC3_SRAW = 3'b101;
     `else
         localparam FUNC7_SLLI = 7'b0000000;
         localparam FUNC7_SRLI = 7'b0000000;
@@ -216,14 +252,6 @@ module leiwand_rv32_core # (
     localparam FUNC3_SB = 3'b000;
     localparam FUNC3_SH = 3'b001;
     localparam FUNC3_SW = 3'b010;
-
-    /* Additional RV64 instructions */
-    `ifdef RV64
-        localparam OP_ADDIW_SLLIW_SRLIW_SRAIW = 7'b0011011;
-        localparam FUNC3_ADDIW = 3'b000;
-        reg is_ADDIW;
-        reg [5:0] shamt_rv64;
-    `endif
 
     reg is_LUI;
     reg is_AUIPC;
@@ -364,6 +392,15 @@ module leiwand_rv32_core # (
                                 is_SRAI <= ({mem_data_in[31:26],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAI, FUNC3_SRAI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
 
                                 is_ADDIW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_ADDIW, OP_ADDIW_SLLIW_SRLIW_SRAIW} ) ? 1 : 0;
+                                is_SLLIW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLIW, FUNC3_SLLIW, OP_ADDIW_SLLIW_SRLIW_SRAIW} ) ? 1 : 0;
+                                is_SRLIW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLIW, FUNC3_SRLIW, OP_ADDIW_SLLIW_SRLIW_SRAIW} ) ? 1 : 0;
+                                is_SRAIW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAIW, FUNC3_SRAIW, OP_ADDIW_SLLIW_SRLIW_SRAIW} ) ? 1 : 0;
+
+                                is_ADDW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_ADDW, FUNC3_ADDW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+                                is_SUBW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SUBW, FUNC3_SUBW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+                                is_SLLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLW, FUNC3_SLLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+                                is_SRLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLW, FUNC3_SRLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+                                is_SRAW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAW, FUNC3_SRAW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
                             `else
                                 is_SLLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
                                 is_SRLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
@@ -437,7 +474,7 @@ module leiwand_rv32_core # (
                             alu_branch_op1 <= x[rs1];
                             alu_branch_op2 <= x[rs2_shamt];
 
-                            if(is_auipc_jal_op || is_branch_op) begin
+                            if(is_auipc_jal_op | is_branch_op) begin
                                alu_op1 <= pc;
                             end
                             else begin
@@ -451,7 +488,15 @@ module leiwand_rv32_core # (
                                     alu_op2 <= { {(`XLEN-5){1'b0}}, rs2_shamt };
                                 `endif
                             end
-                            else if(is_alu_logic || is_alu_shift) begin
+                            `ifdef RV64
+                            else if(is_alu_shift_immediate_w) begin
+                                alu_op2 <= { {(`XLEN-5){1'b0}}, rs2_shamt };
+                            end
+                            else if(is_alu_logicw | is_alu_shiftw) begin
+                                alu_op2 <= x[rs2_shamt];
+                            end
+                            `endif
+                            else if(is_alu_logic | is_alu_shift) begin
                                 alu_op2 <= x[rs2_shamt];
                             end
                             else alu_op2 <= immediate;
@@ -467,7 +512,11 @@ module leiwand_rv32_core # (
                             alu_result_or <= alu_op1 | alu_op2;
                             alu_result_and <= alu_op1 & alu_op2;
                             alu_result_sl <= alu_op1 << alu_op2[5:0];
-                            alu_result_sr <= $signed({is_SRA || is_SRAI ? alu_op1[31] : 1'b0, alu_op1}) >>> alu_op2[4:0];
+                            `ifdef RV64
+                            alu_result_slw <= alu_op1[31:0] << alu_op2[4:0];
+                            alu_result_srw <= $signed({(is_SRAIW | is_SRAW) ? alu_op1[31] : 1'b0, alu_op1[31:0]}) >>> alu_op2[4:0];
+                            `endif
+                            alu_result_sr <= $signed({(is_SRA | is_SRAI) ? alu_op1[(`XLEN-1)] : 1'b0, alu_op1}) >>> alu_op2[4:0];
                             alu_result_sub <= alu_op1 - alu_op2;
                             alu_result_add <= alu_op1 + alu_op2;
 
@@ -595,6 +644,15 @@ module leiwand_rv32_core # (
     wire is_alu_shift_immediate;
     assign is_alu_shift_immediate = (is_SLLI | is_SRLI | is_SRAI);
 
+    `ifdef RV64
+        wire is_alu_shift_immediate_w;
+        assign is_alu_shift_immediate_w = (is_SLLIW | is_SRLIW | is_SRAIW);
+        wire is_alu_logicw;
+        assign is_alu_logicw = (is_ADDW | is_SUBW);
+        wire is_alu_shiftw;
+        assign is_alu_shiftw = (is_SLLW | is_SRLW | is_SRAW);
+    `endif
+
     wire is_alu_logic;
     assign is_alu_logic = (is_ADD | is_SUB | is_SLT | is_SLTU | is_XOR | is_OR | is_AND);
 
@@ -626,7 +684,10 @@ module leiwand_rv32_core # (
                           alu_is_sr_op ? alu_result_sr[(`XLEN-1):0] :
                           alu_is_sub_op ? alu_result_sub :
                           `ifdef RV64
-                          is_ADDIW ? { {(`XLEN-31){alu_result_add[31]}},alu_result_add[30:0] } :
+                          (is_SRLIW | is_SRAIW | is_SRLW | is_SRAW) ? { {(`XLEN-31){alu_result_srw[31]}},alu_result_srw[30:0] } :
+                          (is_SLLIW | is_SLLW) ? { {(`XLEN-31){alu_result_slw[31]}},alu_result_slw[30:0] } :
+                          (is_ADDIW | is_ADDW) ? { {(`XLEN-31){alu_result_add[31]}},alu_result_add[30:0] } :
+                          is_SUBW ? { {(`XLEN-31){alu_result_sub[31]}},alu_result_sub[30:0] } :
                           `endif
                           alu_result_add );
 
