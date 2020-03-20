@@ -47,15 +47,6 @@ srl
 sra
 or
 and
-addiw
-slliw
-srliw
-sraiw
-addw
-subw
-sllw
-srlw
-sraw
 # #fence
 # #fence_i
 # #ecall
@@ -67,6 +58,20 @@ sraw
 # #csrrsi
 # #csrrci
 )
+
+if [ "${ARCH}" = "64" ]; then
+    tests+=(
+        addiw
+        slliw
+        srliw
+        sraiw
+        addw
+        subw
+        sllw
+        srlw
+        sraw
+    )
+fi;
 
 mkdir -p leiwandrv32_compiled_files
 mkdir -p leiwandrv32_traces
