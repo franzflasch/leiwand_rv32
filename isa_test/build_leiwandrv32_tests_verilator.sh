@@ -70,6 +70,8 @@ if [ "${ARCH}" = "64" ]; then
         sllw
         srlw
         sraw
+        ld
+        lwu
     )
 fi;
 

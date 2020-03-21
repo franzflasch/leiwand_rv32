@@ -189,6 +189,9 @@ module leiwand_rv32_core # (
         reg is_SRLW;
         reg is_SRAW;
 
+        reg is_LD;
+        reg is_LWU;
+
         localparam FUNC7_SLLI = 6'b000000;
         localparam FUNC7_SRLI = 6'b000000;
         localparam FUNC7_SRAI = 6'b010000;
@@ -213,6 +216,10 @@ module leiwand_rv32_core # (
         localparam FUNC3_SLLW = 3'b001;
         localparam FUNC3_SRLW = 3'b101;
         localparam FUNC3_SRAW = 3'b101;
+
+        localparam OP_LWU_LD = 7'b0000011;
+        localparam FUNC3_LWU = 3'b110;
+        localparam FUNC3_LD = 3'b011;
     `else
         localparam FUNC7_SLLI = 7'b0000000;
         localparam FUNC7_SRLI = 7'b0000000;
@@ -401,6 +408,9 @@ module leiwand_rv32_core # (
                                 is_SLLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLW, FUNC3_SLLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
                                 is_SRLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLW, FUNC3_SRLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
                                 is_SRAW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAW, FUNC3_SRAW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+
+                                is_LD <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LD, OP_LWU_LD} ) ? 1 : 0;
+                                is_LWU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LWU, OP_LWU_LD} ) ? 1 : 0;
                             `else
                                 is_SLLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLI, FUNC3_SLLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
                                 is_SRLI <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLI, FUNC3_SRLI, OP_ADDI_SLTI_SLTIU_XORI_ORI_ANDI_SLLI_SRLI_SRAI} ) ? 1 : 0;
@@ -513,8 +523,8 @@ module leiwand_rv32_core # (
                             alu_result_and <= alu_op1 & alu_op2;
                             alu_result_sl <= alu_op1 << alu_op2[5:0];
                             `ifdef RV64
-                            alu_result_slw <= alu_op1[31:0] << alu_op2[4:0];
-                            alu_result_srw <= $signed({(is_SRAIW | is_SRAW) ? alu_op1[31] : 1'b0, alu_op1[31:0]}) >>> alu_op2[4:0];
+                                alu_result_slw <= alu_op1[31:0] << alu_op2[4:0];
+                                alu_result_srw <= $signed({(is_SRAIW | is_SRAW) ? alu_op1[31] : 1'b0, alu_op1[31:0]}) >>> alu_op2[4:0];
                             `endif
                             alu_result_sr <= $signed({(is_SRA | is_SRAI) ? alu_op1[(`XLEN-1)] : 1'b0, alu_op1}) >>> alu_op2[4:0];
                             alu_result_sub <= alu_op1 - alu_op2;
@@ -579,6 +589,14 @@ module leiwand_rv32_core # (
                             else if (is_LW) begin
                                 x[rd] <= { {(`XLEN-31){mem_data_in[31]}},mem_data_in[30:0] };
                             end
+                            `ifdef RV64
+                                else if (is_LD) begin
+                                    x[rd] <= mem_data_in;
+                                end
+                                else if (is_LWU) begin
+                                    x[rd] <= { {(`XLEN-32){1'b0}},mem_data_in[31:0] };
+                                end
+                            `endif
                             else if (is_LBU) begin
                                 case (mem_addr_out[1:0])
                                     1: x[rd] <= { {(`XLEN-8){1'b0}},mem_data_in[15:8] };
@@ -660,7 +678,7 @@ module leiwand_rv32_core # (
     assign is_alu_shift = (is_SLL | is_SRL | is_SRA);
 
     wire is_load;
-    assign is_load = (is_LB | is_LH | is_LW | is_LBU | is_LHU);
+    assign is_load = (is_LB | is_LH | is_LW | is_LBU | is_LHU) `ifdef RV64 | (is_LD | is_LWU) `endif;
 
     wire is_store;
     assign is_store = (is_SB | is_SH | is_SW);
