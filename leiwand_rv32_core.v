@@ -46,7 +46,7 @@ module leiwand_rv32_core # (
         output [(`XLEN-1):0] o_mem_addr,
         input [(`XLEN-1):0] i_mem_data,
         output [(`XLEN-1):0] o_mem_data,
-        output [3:0] o_mem_wen
+        output [((`XLEN/8)-1):0] o_mem_wen
     );
 
     `ifdef ENABLE_CSR_REGS
@@ -143,7 +143,7 @@ module leiwand_rv32_core # (
     reg [(`XLEN-1):0] mem_addr_out;
     reg [(`XLEN-1):0] mem_data_in;
     reg [(`XLEN-1):0] mem_data_out;
-    reg [3:0] mem_wen;
+    reg [((`XLEN/8)-1):0] mem_wen;
     reg mem_access;
 
     /* RV32I Base instructions */
@@ -541,21 +541,50 @@ module leiwand_rv32_core # (
                             mem_addr_out <= alu_result;
                             mem_data_out <= x[rs2_shamt];
 
-                            if(is_SB) begin
-                                case (alu_result[1:0])
-                                    1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0010; end
-                                    2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0100; end
-                                    3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 4'b1000; end
-                                    default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0001; end
-                                endcase
-                            end
-                            if(is_SH) begin
-                                case (alu_result[1])
-                                    1: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 4'b1100; end
-                                    default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 4'b0011; end
-                                endcase
-                            end
-                            if(is_SW) begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 4'b1111; end
+                            `ifdef RV64
+                                if(is_SB) begin
+                                    case (alu_result[2:0])
+                                        1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000010; end
+                                        2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000100; end
+                                        3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00001000; end
+                                        4: begin mem_data_out[39:32] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00010000; end
+                                        5: begin mem_data_out[47:40] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00100000; end
+                                        6: begin mem_data_out[55:48] <= x[rs2_shamt][7:0]; mem_wen <= 8'b01000000; end
+                                        7: begin mem_data_out[63:56] <= x[rs2_shamt][7:0]; mem_wen <= 8'b10000000; end
+                                        default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000001; end
+                                    endcase
+                                end
+                                if(is_SH) begin
+                                    case (alu_result[2:0])
+                                        2: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00001100; end
+                                        4: begin mem_data_out[47:32] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00110000; end
+                                        6: begin mem_data_out[63:48] <= x[rs2_shamt][15:0]; mem_wen <= 8'b11000000; end
+                                        default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00000011; end
+                                    endcase
+                                end
+                                if(is_SW) begin
+                                    case (alu_result[2:0])
+                                        4: begin mem_data_out[63:32] <= x[rs2_shamt][31:0]; mem_wen <= 8'b11110000; end
+                                        default: begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 8'b00001111; end
+                                    endcase
+                                end
+                            `else
+                                if(is_SB) begin
+                                    case (alu_result[1:0])
+                                        1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0010; end
+                                        2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0100; end
+                                        3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 4'b1000; end
+                                        default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0001; end
+                                    endcase
+                                end
+                                if(is_SH) begin
+                                    case (alu_result[1])
+                                        1: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 4'b1100; end
+                                        default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 4'b0011; end
+                                    endcase
+                                end
+                                if(is_SW) begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 4'b1111; end
+                            `endif
 
                             mem_access <= 1;
                             mem_valid <= 1;

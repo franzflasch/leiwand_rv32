@@ -33,7 +33,7 @@ module leiwand_rv32_core_tb();
     wire [(`XLEN-1):0] mem_addr;
     wire [(`XLEN-1):0] mem_data_cpu_in;
     wire [(`XLEN-1):0] mem_data_cpu_out;
-    wire [3:0] mem_wen;
+    wire [((`XLEN/8)-1):0] mem_wen;
 
     wire [(`XLEN-1):0] dummy_irq_status;
 

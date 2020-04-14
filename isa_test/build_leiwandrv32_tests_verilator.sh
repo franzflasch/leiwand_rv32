@@ -25,9 +25,9 @@ lh
 lw
 lbu
 lhu
-# #sb
-# #sh
-# #sw
+sb
+sh
+sw
 addi
 slti
 sltiu
