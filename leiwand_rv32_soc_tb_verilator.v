@@ -55,7 +55,7 @@ module leiwand_rv32_soc_tb_verilator(
         .clk(i_clk),
         .rst(i_rst),
 
-        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + (4*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + ((`XLEN/8)*MEMORY_SIZE))),
         .ready(mem_ready),
         .wen(mem_wen),
         .addr(mem_addr[(`XLEN-1):0]),

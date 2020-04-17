@@ -201,7 +201,7 @@ module leiwandrv32_soc_hx8k(
     spimemio spimemio (
         .clk    (system_clock),
         .resetn (resetn),
-        .valid  (mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + (4*FLASH_SIZE)))),
+        .valid  (mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + ((`XLEN/8)*FLASH_SIZE)))),
         .ready  (rom_ready),
         .addr   (mem_addr[23:0]),
         .rdata  (rom_rdata),
@@ -234,7 +234,7 @@ module leiwandrv32_soc_hx8k(
     ) internal_rom (
         .clk(system_clock),
         .rst(!resetn),
-        .valid(mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + (4*FLASH_SIZE)))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h100000) && (mem_addr < (`XLEN'h100000 + ((`XLEN/8)*FLASH_SIZE)))),
         .ready(rom_ready),
         .wen(mem_wen),
         .addr(mem_addr[31:0]),
@@ -252,7 +252,7 @@ module leiwandrv32_soc_hx8k(
     ) internal_ram (
         .clk(system_clock),
         .rst(!resetn),
-        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < (`XLEN'h20400000 + (4*RAM_SIZE)))),
+        .valid(mem_valid && (mem_addr >= `XLEN'h20400000) && (mem_addr < (`XLEN'h20400000 + ((`XLEN/8)*RAM_SIZE)))),
         .ready(ram_ready),
         .wen(mem_wen),
         .addr(mem_addr[31:0]),

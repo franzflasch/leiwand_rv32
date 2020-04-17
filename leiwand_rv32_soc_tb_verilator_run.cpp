@@ -9,6 +9,16 @@
 #include <byteswap.h>
 #include <gdb_rsp.h>
 
+#ifdef RV64
+#define PRINTF_FMT "%016lx"
+#define BSWAP_ARCH __bswap_64
+#else
+#define PRINTF_FMT "%08x"
+#define BSWAP_ARCH __bswap_32
+#endif
+
+#define MEM_START_ADDR 0x80000000
+
 void riscv_cpu_g_packet(sds *buf, void *priv)
 {
     size_t i = 0;
@@ -16,20 +26,24 @@ void riscv_cpu_g_packet(sds *buf, void *priv)
     for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x)/
                sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[0]));i++)
     {
-        *buf = sdscatprintf(*buf, "%08x", __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[i]));
+        *buf = sdscatprintf(*buf, PRINTF_FMT, BSWAP_ARCH(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[i]));
     }
-    *buf = sdscatprintf(*buf, "%08x", __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc));
+    *buf = sdscatprintf(*buf, PRINTF_FMT, BSWAP_ARCH(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc));
 }
 
 void riscv_cpu_read_mem(sds *buf, size_t addr, size_t no_bytes, void *priv)
 {
     size_t i = 0;
+    size_t local_addr = 0;
     Vleiwand_rv32_soc_tb_verilator *tb = (Vleiwand_rv32_soc_tb_verilator *)priv;
-    if( (addr >= 0x20400000) && (addr <= (0x20400000 + 4096)) )
+    size_t mem_size = sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem);
+    uint8_t *buf_ptr = (uint8_t *)&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0];
+    if( (addr >= MEM_START_ADDR) && (addr <= (MEM_START_ADDR + mem_size)) )
     {
+        local_addr = addr - MEM_START_ADDR;
         for(i=0;i<no_bytes;i++)
         {
-            *buf = sdscatprintf(*buf, "%02x", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+            *buf = sdscatprintf(*buf, "%02x", buf_ptr[local_addr+i]);
         }
     }
 }
@@ -130,7 +144,7 @@ int main(int argc, char **argv)
     tb->i_rst = 0;
 
     int counter = 0;
-    gdb_cpu_interface_td riscv32_test_cpu = {
+    gdb_rsp_cpu_interface_struct riscv32_test_cpu = {
         .g_packet = riscv_cpu_g_packet,
         .read_mem = riscv_cpu_read_mem,
     };
