@@ -97,6 +97,8 @@ int main(int argc, char **argv)
     FILE *fptr;
     int file_size = 0;
     int prev = 0;
+    int cpu_exec_continue = 0;
+    int cpu_exec_step = 0;
 
     if ((fptr = fopen(argv[1],"rb")) == NULL){
         printf("ERROR: opening file\n");
@@ -144,6 +146,7 @@ int main(int argc, char **argv)
     tb->i_rst = 0;
 
     int counter = 0;
+    int gdb_command = 0;
     gdb_rsp_cpu_interface_struct riscv32_test_cpu = {
         .g_packet = riscv_cpu_g_packet,
         .read_mem = riscv_cpu_read_mem,
@@ -153,7 +156,42 @@ int main(int argc, char **argv)
 
     for(;;)
     {
-        //cpu_step(tb);
+        if(cpu_exec_continue && gdb_rsp.check_breakpoint(rsp, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc))
+        {
+            printf("breakpoint hit!\n");
+            gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.T05);
+            cpu_exec_continue = 0;
+        }
+
+        gdb_command = gdb_rsp.get_next_gdb_rx_command(rsp);
+        if(gdb_command >= 0)
+        {
+            if(gdb_command == gdb_rsp_gdb_rx_command.STEP)
+            {
+                printf("Executing step command!\n");
+                cpu_exec_step = 1;
+            }
+            else if(gdb_command == gdb_rsp_gdb_rx_command.CONTINUE)
+            {
+                printf("Executing continue command!\n");
+                cpu_exec_continue = 1;
+            }
+            else
+            {
+                printf("Unknown command!\n");
+            }
+        }
+
+        if(cpu_exec_continue || cpu_exec_step)
+        {
+            cpu_step(tb);
+            if(cpu_exec_step)
+            {
+                gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.T05);
+                cpu_exec_step = 0;
+            }
+        }
+
         // printf("\n\n");
         // printf("cycle: %d\n", cycle);
         // printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
