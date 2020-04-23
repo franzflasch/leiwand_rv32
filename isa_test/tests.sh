@@ -61,5 +61,6 @@ if [ "${ARCH}" = "64" ]; then
         sraw
         ld
         lwu
+        sd
     )
 fi;

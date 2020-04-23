@@ -50,7 +50,7 @@ module leiwand_rv32_core_tb();
             mem_wen
     );
 
-    simple_mem #(
+    leiwand_rv32_simple_mem #(
         .WORDS(MEMORY_SIZE),
         .WIDTH(`XLEN)
     ) internal_rom (

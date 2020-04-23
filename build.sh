@@ -25,7 +25,7 @@ iverilog -sleiwand_rv32_core_tb -DRV${ARCH} -DBINARY_TO_LOAD=\"$BINARY_TO_LOAD\"
     helper.v \
     leiwand_rv32_constants.v \
     leiwand_rv32_core.v \
-    simple_mem.v \
+    leiwand_rv32_simple_mem.v \
     leiwand_rv32_soc_tb.v
 
 vvp leiwand_rv32

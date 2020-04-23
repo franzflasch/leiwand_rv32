@@ -60,16 +60,16 @@ int main(int argc, char **argv) {
 
     //printf("file_size: %d success pc: %x\n", file_size, success_pc);
 
-    for(i=0;i<sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]);i++)
+    for(i=0;i<sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[0]);i++)
     {
-        tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = 0;
-        fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]), 1, fptr);
+        tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i] = 0;
+        fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i]), 1, fptr);
     }
 
-    for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0]));i++)
+    for(i=0;i<(sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem)/sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[0]));i++)
     {
-        //tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i] = __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
-        printf("mem: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[i]);
+        //tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i] = __bswap_32(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i]);
+        printf("mem: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[i]);
     }
 
     tb->i_rst = 0;

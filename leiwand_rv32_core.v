@@ -19,19 +19,14 @@
 `timescale 1ns/1ps
 
 `include "helper.v"
+`include "leiwand_rv32_config.v"
 `include "leiwand_rv32_constants.v"
-
-//`define DEBUG
 
 `ifdef DEBUG
   `define debug(debug_command) debug_command
 `else
   `define debug(debug_command)
 `endif
-
-
-`define ENABLE_CSR_REGS
-
 
 module leiwand_rv32_core # (
         parameter PC_START_VAL = `XLEN'h80000000 /* QEMU virt machine Value */
@@ -189,6 +184,8 @@ module leiwand_rv32_core # (
         reg is_SRLW;
         reg is_SRAW;
 
+        reg is_SD;
+
         reg is_LD;
         reg is_LWU;
 
@@ -216,6 +213,9 @@ module leiwand_rv32_core # (
         localparam FUNC3_SLLW = 3'b001;
         localparam FUNC3_SRLW = 3'b101;
         localparam FUNC3_SRAW = 3'b101;
+
+        localparam OP_SD = 7'b0100011;
+        localparam FUNC3_SD = 3'b011;
 
         localparam OP_LWU_LD = 7'b0000011;
         localparam FUNC3_LWU = 3'b110;
@@ -367,7 +367,7 @@ module leiwand_rv32_core # (
 
                         /* Decode next instruction */
                         STAGE_INSTR_DECODE: begin
-                            $display("mem_data_in: %x", mem_data_in);
+                            `debug($display("mem_data_in: %x", mem_data_in);)
 
                             rs1[4:0] <= mem_data_in[19:15];
                             rs2_shamt[4:0] <= mem_data_in[24:20];
@@ -408,6 +408,8 @@ module leiwand_rv32_core # (
                                 is_SLLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SLLW, FUNC3_SLLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
                                 is_SRLW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRLW, FUNC3_SRLW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
                                 is_SRAW <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_SRAW, FUNC3_SRAW, OP_ADDW_SUBW_SLLW_SRLW_SRAW} ) ? 1 : 0;
+
+                                is_SD <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SD, OP_SD} ) ? 1 : 0;
 
                                 is_LD <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LD, OP_LWU_LD} ) ? 1 : 0;
                                 is_LWU <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_LWU, OP_LWU_LD} ) ? 1 : 0;
@@ -515,7 +517,6 @@ module leiwand_rv32_core # (
                         end
 
                         STAGE_INSTR_ALU_EXECUTE: begin
-
                             alu_result_slt <= $signed(alu_op1) < $signed(alu_op2);
                             alu_result_sltu <= alu_op1 < alu_op2;
                             alu_result_xor <= alu_op1 ^ alu_op2;
@@ -540,60 +541,30 @@ module leiwand_rv32_core # (
                         STAGE_INSTR_ACCESS: begin
                             mem_addr_out <= alu_result;
                             mem_data_out <= x[rs2_shamt];
-
+                            if(is_SB) begin
+                                case (alu_result[1:0])
+                                    1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b0010 }; end
+                                    2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b0100 }; end
+                                    3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b1000 }; end
+                                    default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b0001 }; end
+                                endcase
+                            end
+                            if(is_SH) begin
+                                case (alu_result[1])
+                                    1: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b1100 }; end
+                                    default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b0011 }; end
+                                endcase
+                            end
+                            if(is_SW) begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b0}}, 4'b1111 }; end
                             `ifdef RV64
-                                if(is_SB) begin
-                                    case (alu_result[2:0])
-                                        1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000010; end
-                                        2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000100; end
-                                        3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00001000; end
-                                        4: begin mem_data_out[39:32] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00010000; end
-                                        5: begin mem_data_out[47:40] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00100000; end
-                                        6: begin mem_data_out[55:48] <= x[rs2_shamt][7:0]; mem_wen <= 8'b01000000; end
-                                        7: begin mem_data_out[63:56] <= x[rs2_shamt][7:0]; mem_wen <= 8'b10000000; end
-                                        default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 8'b00000001; end
-                                    endcase
-                                end
-                                if(is_SH) begin
-                                    case (alu_result[2:0])
-                                        2: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00001100; end
-                                        4: begin mem_data_out[47:32] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00110000; end
-                                        6: begin mem_data_out[63:48] <= x[rs2_shamt][15:0]; mem_wen <= 8'b11000000; end
-                                        default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 8'b00000011; end
-                                    endcase
-                                end
-                                if(is_SW) begin
-                                    case (alu_result[2:0])
-                                        4: begin mem_data_out[63:32] <= x[rs2_shamt][31:0]; mem_wen <= 8'b11110000; end
-                                        default: begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 8'b00001111; end
-                                    endcase
-                                end
-                            `else
-                                if(is_SB) begin
-                                    case (alu_result[1:0])
-                                        1: begin mem_data_out[15:8] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0010; end
-                                        2: begin mem_data_out[23:16] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0100; end
-                                        3: begin mem_data_out[31:24] <= x[rs2_shamt][7:0]; mem_wen <= 4'b1000; end
-                                        default: begin mem_data_out[7:0] <= x[rs2_shamt][7:0]; mem_wen <= 4'b0001; end
-                                    endcase
-                                end
-                                if(is_SH) begin
-                                    case (alu_result[1])
-                                        1: begin mem_data_out[31:16] <= x[rs2_shamt][15:0]; mem_wen <= 4'b1100; end
-                                        default: begin mem_data_out[15:0] <= x[rs2_shamt][15:0]; mem_wen <= 4'b0011; end
-                                    endcase
-                                end
-                                if(is_SW) begin mem_data_out[31:0] <= x[rs2_shamt][31:0]; mem_wen <= 4'b1111; end
+                                if(is_SD) begin mem_data_out[63:0] <= x[rs2_shamt][63:0]; mem_wen <= { {(`XLEN_BYTES-`MEM_WIDTH_BYTES){1'b1}}, 4'b1111 }; end
                             `endif
-
                             mem_access <= 1;
                             mem_valid <= 1;
-
                             cpu_stage <= (is_store) ?  STAGE_INSTR_FETCH : STAGE_INSTR_WRITEBACK;
                         end
 
                         STAGE_INSTR_WRITEBACK: begin
-
                             if (is_LUI) x[rd] <= immediate;
                             else if(is_branch_op) begin
                                 if(take_branch) begin
@@ -710,7 +681,7 @@ module leiwand_rv32_core # (
     assign is_load = (is_LB | is_LH | is_LW | is_LBU | is_LHU) `ifdef RV64 | (is_LD | is_LWU) `endif;
 
     wire is_store;
-    assign is_store = (is_SB | is_SH | is_SW);
+    assign is_store = (is_SB | is_SH | is_SW) `ifdef RV64 | is_SD `endif;
 
     wire alu_is_slt_op;
     wire alu_is_sltu_op;
@@ -731,10 +702,10 @@ module leiwand_rv32_core # (
                           alu_is_sr_op ? alu_result_sr[(`XLEN-1):0] :
                           alu_is_sub_op ? alu_result_sub :
                           `ifdef RV64
-                          (is_SRLIW | is_SRAIW | is_SRLW | is_SRAW) ? { {(`XLEN-31){alu_result_srw[31]}},alu_result_srw[30:0] } :
-                          (is_SLLIW | is_SLLW) ? { {(`XLEN-31){alu_result_slw[31]}},alu_result_slw[30:0] } :
-                          (is_ADDIW | is_ADDW) ? { {(`XLEN-31){alu_result_add[31]}},alu_result_add[30:0] } :
-                          is_SUBW ? { {(`XLEN-31){alu_result_sub[31]}},alu_result_sub[30:0] } :
+                            (is_SRLIW | is_SRAIW | is_SRLW | is_SRAW) ? { {(`XLEN-31){alu_result_srw[31]}},alu_result_srw[30:0] } :
+                            (is_SLLIW | is_SLLW) ? { {(`XLEN-31){alu_result_slw[31]}},alu_result_slw[30:0] } :
+                            (is_ADDIW | is_ADDW) ? { {(`XLEN-31){alu_result_add[31]}},alu_result_add[30:0] } :
+                            is_SUBW ? { {(`XLEN-31){alu_result_sub[31]}},alu_result_sub[30:0] } :
                           `endif
                           alu_result_add );
 

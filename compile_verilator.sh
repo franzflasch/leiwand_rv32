@@ -10,5 +10,5 @@ fi
 ARCH="$1"
 
 rm -rf verilator_isa_test
-verilator -DRV${ARCH} -Wall --cc --trace --Mdir verilator_isa_test leiwand_rv32_soc_tb_verilator.v --exe leiwand_rv32_soc_tb_verilator.cpp
+verilator -DRV${ARCH} -Wall --cc --trace --trace-max-array 1024 --Mdir verilator_isa_test leiwand_rv32_soc_tb_verilator.v --exe leiwand_rv32_soc_tb_verilator.cpp
 make CXXFLAGS="-DRV${ARCH}" -j -C verilator_isa_test/ -f Vleiwand_rv32_soc_tb_verilator.mk Vleiwand_rv32_soc_tb_verilator

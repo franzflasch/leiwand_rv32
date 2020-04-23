@@ -229,7 +229,7 @@ module leiwandrv32_soc_hx8k(
         .cfgreg_do(spimemio_cfgreg_do)
     );
 `else
-    simple_mem #(
+    leiwand_rv32_simple_mem #(
         .WORDS(FLASH_SIZE)
     ) internal_rom (
         .clk(system_clock),
@@ -247,7 +247,7 @@ module leiwandrv32_soc_hx8k(
     wire ram_ready;
     wire [(`XLEN-1):0] ram_rdata;
 
-    simple_mem #(
+    leiwand_rv32_simple_mem #(
         .WORDS(RAM_SIZE)
     ) internal_ram (
         .clk(system_clock),

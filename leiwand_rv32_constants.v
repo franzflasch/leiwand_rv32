@@ -22,9 +22,15 @@
 
 `ifdef RV64
     `define XLEN 64
+    `define XLEN_BYTES 8
 `else
     `define XLEN 32
+    `define XLEN_BYTES 4
 `endif
+
+`define MEM_WIDTH 32
+`define MEM_WIDTH_BYTES 4
+`define MEM_OFFSET 2
 
 /* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
 /* https://static.dev.sifive.com/E31-Coreplex.pdf */

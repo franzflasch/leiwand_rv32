@@ -17,7 +17,8 @@
 #define BSWAP_ARCH __bswap_32
 #endif
 
-#define MEM_START_ADDR 0x80000000
+#define CLINT_BASE_ADDR 0x2000000
+#define CLINT_REG_MAX   0x200FFFF
 
 void riscv_cpu_g_packet(sds *buf, void *priv)
 {
@@ -36,11 +37,23 @@ void riscv_cpu_read_mem(sds *buf, size_t addr, size_t no_bytes, void *priv)
     size_t i = 0;
     size_t local_addr = 0;
     Vleiwand_rv32_soc_tb_verilator *tb = (Vleiwand_rv32_soc_tb_verilator *)priv;
-    size_t mem_size = sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem);
-    uint8_t *buf_ptr = (uint8_t *)&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0];
-    if( (addr >= MEM_START_ADDR) && (addr <= (MEM_START_ADDR + mem_size)) )
+    size_t mem_size = sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem);
+    uint8_t *buf_ptr = NULL;
+
+    if( (addr >= tb->leiwand_rv32_soc_tb_verilator__DOT__RAM_BASE_ADDR) &&
+        (addr <= (tb->leiwand_rv32_soc_tb_verilator__DOT__RAM_BASE_ADDR + tb->leiwand_rv32_soc_tb_verilator__DOT__RAM_SIZE_BYTES)) )
     {
-        local_addr = addr - MEM_START_ADDR;
+        buf_ptr = (uint8_t *)&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[0];
+        local_addr = addr - tb->leiwand_rv32_soc_tb_verilator__DOT__RAM_BASE_ADDR;
+        for(i=0;i<no_bytes;i++)
+        {
+            *buf = sdscatprintf(*buf, "%02x", buf_ptr[local_addr+i]);
+        }
+    }
+    else if( (addr >= CLINT_BASE_ADDR) && (addr <= CLINT_REG_MAX) )
+    {
+        buf_ptr = (uint8_t *)&tb->leiwand_rv32_soc_tb_verilator__DOT__clint__DOT__mem[0];
+        local_addr = addr - CLINT_BASE_ADDR;
         for(i=0;i<no_bytes;i++)
         {
             *buf = sdscatprintf(*buf, "%02x", buf_ptr[local_addr+i]);
@@ -70,6 +83,7 @@ void cpu_step(Vleiwand_rv32_soc_tb_verilator *tb)
             break;
         }
     }
+    fflush(stdout);
 }
 
 
@@ -110,7 +124,7 @@ int main(int argc, char **argv)
     file_size = ftell(fptr);
     fseek(fptr,prev,SEEK_SET);
 
-    fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem[0], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_rom__DOT__mem), 1, fptr);
+    fread(&tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem[0], sizeof(tb->leiwand_rv32_soc_tb_verilator__DOT__internal_ram__DOT__mem), 1, fptr);
 
     int tick = 0;
 
@@ -159,7 +173,7 @@ int main(int argc, char **argv)
         if(cpu_exec_continue && gdb_rsp.check_breakpoint(rsp, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc))
         {
             printf("breakpoint hit!\n");
-            gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.T05);
+            gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.SIG_TRAP);
             cpu_exec_continue = 0;
         }
 
@@ -176,6 +190,12 @@ int main(int argc, char **argv)
                 printf("Executing continue command!\n");
                 cpu_exec_continue = 1;
             }
+            else if(gdb_command == gdb_rsp_gdb_rx_command.STOP)
+            {
+                printf("Stop request received!\n");
+                gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.SIG_INT);
+                cpu_exec_continue = 0;
+            }
             else
             {
                 printf("Unknown command!\n");
@@ -187,7 +207,7 @@ int main(int argc, char **argv)
             cpu_step(tb);
             if(cpu_exec_step)
             {
-                gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.T05);
+                gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.SIG_TRAP);
                 cpu_exec_step = 0;
             }
         }

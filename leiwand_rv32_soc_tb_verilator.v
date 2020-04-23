@@ -26,7 +26,9 @@ module leiwand_rv32_soc_tb_verilator(
     input i_rst
 );
 
-    parameter MEMORY_SIZE = 4096;
+    /* 32KiB */
+    parameter RAM_SIZE_BYTES /*verilator public_flat_rw*/ = 'h1000;
+    parameter RAM_BASE_ADDR /*verilator public_flat_rw*/ = `XLEN'h80000000;
 
     wire mem_valid;
     wire mem_ready;
@@ -35,8 +37,9 @@ module leiwand_rv32_soc_tb_verilator(
     wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [((`XLEN/8)-1):0] mem_wen;
 
-    leiwand_rv32_core
-        cpu_core (
+    leiwand_rv32_core #(
+        .PC_START_VAL(RAM_BASE_ADDR)
+    ) cpu_core (
             .i_clk(i_clk),
             .i_rst(i_rst),
 
@@ -48,19 +51,54 @@ module leiwand_rv32_soc_tb_verilator(
             .o_mem_wen(mem_wen)
     );
 
-    simple_mem #(
-        .WORDS(MEMORY_SIZE),
-        .WIDTH(`XLEN)
-    ) internal_rom (
+    wire ram_ready;
+    wire [(`XLEN-1):0] ram_rdata;
+
+    leiwand_rv32_simple_mem #(
+        .WORDS(RAM_SIZE_BYTES/`MEM_WIDTH_BYTES)
+    ) internal_ram (
         .clk(i_clk),
         .rst(i_rst),
 
-        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + ((`XLEN/8)*MEMORY_SIZE))),
-        .ready(mem_ready),
+        .valid(mem_valid && (mem_addr >= RAM_BASE_ADDR) && (mem_addr < RAM_BASE_ADDR + (RAM_SIZE_BYTES))),
+        .ready(ram_ready),
         .wen(mem_wen),
         .addr(mem_addr[(`XLEN-1):0]),
         .wdata(mem_data_cpu_out[(`XLEN-1):0]),
-        .rdata(mem_data_cpu_in[(`XLEN-1):0])
+        .rdata(ram_rdata[(`XLEN-1):0])
     );
+
+    wire clint_ready;
+    wire [(`XLEN-1):0] clint_rdata;
+
+    leiwand_rv32_clint clint (
+        .clk(i_clk),
+        .rst(i_rst),
+
+        .valid(mem_valid && (mem_addr >= `XLEN'h2000000) && (mem_addr <= `XLEN'h200FFFF)),
+        .ready(clint_ready),
+        .wen(mem_wen),
+        .addr(mem_addr[(`XLEN-1):0]),
+        .wdata(mem_data_cpu_out[(`XLEN-1):0]),
+        .rdata(clint_rdata[(`XLEN-1):0])
+    );
+
+    wire uart_ready;
+    wire [(`XLEN-1):0] uart_rdata;
+
+    leiwand_rv32_simple_uart uart (
+        .clk(i_clk),
+        .rst(i_rst),
+
+        .valid(mem_valid && (mem_addr >= `XLEN'h10000000) && (mem_addr <= `XLEN'h10000008)),
+        .ready(uart_ready),
+        .wen(mem_wen),
+        .addr(mem_addr[(`XLEN-1):0]),
+        .wdata(mem_data_cpu_out[(`XLEN-1):0]),
+        .rdata(uart_rdata[(`XLEN-1):0])
+    );
+
+    assign mem_ready = ram_ready | clint_ready | uart_ready;
+    assign mem_data_cpu_in = ram_ready ? ram_rdata : clint_ready ? clint_rdata : uart_ready ? uart_rdata : `XLEN'h 0000_0000;
 
 endmodule
