@@ -55,4 +55,9 @@ mepc:
       and for (asynchronous) interrupts mepc will be set to PC+4. - https://stackoverflow.com/questions/58726942/risc-v-exceptions-vs-interrupts
       For asynchronous interrupts mepc is automatically set to PC+4 by HW. For synchronous exceptions (e.g. ecall) mepc is set to the PC which caused the trap.
 
+priorities:
 
+    Multiple simultaneous interrupts destined for different privilege modes are handled in decreasing
+    order of destined privilege mode. Multiple simultaneous interrupts destined for the same privilege
+    mode are handled in the following decreasing priority order: MEI, MSI, MTI, SEI, SSI, STI, UEI,
+    USI, UTI. Synchronous exceptions are of lower priority than all interrupts.

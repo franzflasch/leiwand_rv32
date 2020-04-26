@@ -41,7 +41,10 @@ module leiwand_rv32_core # (
         output [(`XLEN-1):0] o_mem_addr,
         input [(`XLEN-1):0] i_mem_data,
         output [(`XLEN-1):0] o_mem_data,
-        output [((`XLEN/8)-1):0] o_mem_wen
+        output [((`XLEN/8)-1):0] o_mem_wen,
+
+        /* verilator lint_off UNUSED */
+        input [12:0] i_irq
     );
 
     `ifdef ENABLE_CSR_REGS
@@ -73,7 +76,7 @@ module leiwand_rv32_core # (
         localparam MTVAL = 6;
         localparam MIP = 7;
 
-        reg [(`XLEN-1):0] csr[(MIP-1):0];
+        reg [(`XLEN-1):0] csr[MIP:0];
 
         //function automatic [(`XLEN-1):0] csr_reg_val;
         function [`HIGH_BIT_TO_FIT(MIP):0] csr_reg_to_internal_index;
@@ -124,7 +127,7 @@ module leiwand_rv32_core # (
     reg [(`XLEN-1):0] pc;
 
     /* verilator lint_off UNUSED */
-    reg [(`XLEN-1):0] instruction;
+    reg [31:0] instruction;
 
     /* opcode registers */
     reg [(`XLEN-1):0] next_pc;
@@ -289,6 +292,23 @@ module leiwand_rv32_core # (
     reg alu_branch_ge;
     reg alu_branch_geu;
 
+    `ifdef ENABLE_IRQ_SUPPORT
+        `ifndef ENABLE_CSR_REGS
+            `error "ENABLE_IRQ_SUPPORT needs ENABLE_CSR_REGS"
+        `endif
+        localparam OP_URET_SRET_MRET = 7'b1110011;
+        localparam FUNC3_URET = 3'b000;
+        localparam FUNC3_SRET = 3'b000;
+        localparam FUNC3_MRET = 3'b000;
+        localparam FUNC7_URET = 7'b0000000;
+        localparam FUNC7_SRET = 7'b0001000;
+        localparam FUNC7_MRET = 7'b0011000;
+        reg is_MRET;
+
+        reg in_irq;
+        reg [(`XLEN-1):0] irq_pc_save;
+    `endif
+
     /* CPU Core */
     always @(posedge i_clk) begin
         if(i_rst) begin
@@ -340,6 +360,10 @@ module leiwand_rv32_core # (
             mem_wen <= 0;
 
             mem_access <= 0;
+
+            `ifdef ENABLE_IRQ_SUPPORT
+                in_irq <= 0;
+            `endif
         end
         else begin
 
@@ -356,13 +380,24 @@ module leiwand_rv32_core # (
                 case (cpu_stage)
 
                         STAGE_INSTR_FETCH: begin
-                            mem_addr_out <= next_pc;
-                            mem_access <= 1;
-                            mem_valid <= 1;
-
-                            pc <= next_pc;
-                            next_pc <= next_pc + 4;
-                            cpu_stage <= STAGE_INSTR_DECODE;
+                            `ifdef ENABLE_IRQ_SUPPORT
+                                csr[MIP][12:0] <= i_irq;
+                                if(!in_irq && csr[MSTATUS][`MSTATUS_MIE_BIT] & csr[MIE][`MIE_MIP_MSI_BIT] & csr[MIP][`MIE_MIP_MSI_BIT]) begin
+                                    in_irq <= 1;
+                                    csr[MEPC] <= next_pc;
+                                    next_pc <= csr[MTVEC];
+                                    cpu_stage <= STAGE_INSTR_FETCH;
+                                end
+                                else
+                            `endif
+                                begin
+                                    mem_addr_out <= next_pc;
+                                    mem_access <= 1;
+                                    mem_valid <= 1;
+                                    pc <= next_pc;
+                                    next_pc <= next_pc + 4;
+                                    cpu_stage <= STAGE_INSTR_DECODE;
+                                end
                         end
 
                         /* Decode next instruction */
@@ -449,6 +484,10 @@ module leiwand_rv32_core # (
                                 is_CSRRCI <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRCI, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
                             `endif
 
+                            `ifdef ENABLE_IRQ_SUPPORT
+                                is_MRET <= ({mem_data_in[31:25],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC7_MRET, FUNC3_MRET, OP_URET_SRET_MRET} ) ? 1 : 0;
+                            `endif
+
                             case (mem_data_in[6:0])
 
                                 /* S-type */
@@ -477,7 +516,7 @@ module leiwand_rv32_core # (
 
                             endcase
 
-                            instruction <= mem_data_in;
+                            instruction <= mem_data_in[31:0];
                             cpu_stage <= STAGE_INSTR_ALU_PREPARE;
                         end
 
@@ -624,6 +663,12 @@ module leiwand_rv32_core # (
                                                                                            csr[csr_reg_to_internal_index(immediate[11:0])] & (~{ {(`XLEN-5){1'b0}}, rs1[4:0] }) :
                                                                                            csr[csr_reg_to_internal_index(immediate[11:0])] & ~x[rs1[4:0]];
                                     end
+                                end
+                            `endif
+                            `ifdef ENABLE_IRQ_SUPPORT
+                                else if (is_MRET) begin
+                                    next_pc <= csr[MEPC];
+                                    in_irq <= 0;
                                 end
                             `endif
                             else x[rd] <= alu_result;

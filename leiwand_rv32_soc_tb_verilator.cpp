@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
             printf("cycle: %d\n", cycle);
             printf("stage: %d\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage);
             printf("pc: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__pc);
-            printf("instr: " PRINTF_FMT "\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
+            printf("instr: %08x\n", tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__instruction);
             for(j=0;j<32;j++)
                 printf("x[%2d]: " PRINTF_FMT" \n", j, tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__x[j]);
 

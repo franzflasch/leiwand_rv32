@@ -28,20 +28,22 @@
 `define MTIMECMP_ADDR_INTERNAL 1
 `define MTIME_ADDR_INTERNAL 2
 
-`define read_write_mem(reg_addr)\
+`define MSIP_TRIGGER_REG_BIT 0
+
+`define read_write_mem(mem_reg, mem_wdata, mem_wen, reg_addr)\
     begin \
         /* Read Access */ \
-        rdata <= mem[`MSIP_ADDR_INTERNAL]; \
+        rdata <= mem_reg[reg_addr]; \
         /* Write Access */ \
-        if (wen[0]) mem[reg_addr][ 7: 0] <= wdata[ 7: 0]; \
-        if (wen[1]) mem[reg_addr][15: 8] <= wdata[15: 8]; \
-        if (wen[2]) mem[reg_addr][23:16] <= wdata[23:16]; \
-        if (wen[3]) mem[reg_addr][31:24] <= wdata[31:24]; \
+        if (mem_wen[0]) mem_reg[reg_addr][ 7: 0] <= mem_wdata[ 7: 0]; \
+        if (mem_wen[1]) mem_reg[reg_addr][15: 8] <= mem_wdata[15: 8]; \
+        if (mem_wen[2]) mem_reg[reg_addr][23:16] <= mem_wdata[23:16]; \
+        if (mem_wen[3]) mem_reg[reg_addr][31:24] <= mem_wdata[31:24]; \
         `ifdef RV64 \
-            if (wen[4]) mem[reg_addr][39:32] <= wdata[39:32]; \
-            if (wen[5]) mem[reg_addr][47:40] <= wdata[47:40]; \
-            if (wen[6]) mem[reg_addr][55:48] <= wdata[55:48]; \
-            if (wen[7]) mem[reg_addr][63:56] <= wdata[63:56]; \
+            if (mem_wen[4]) mem_reg[reg_addr][39:32] <= mem_wdata[39:32]; \
+            if (mem_wen[5]) mem_reg[reg_addr][47:40] <= mem_wdata[47:40]; \
+            if (mem_wen[6]) mem_reg[reg_addr][55:48] <= mem_wdata[55:48]; \
+            if (mem_wen[7]) mem_reg[reg_addr][63:56] <= mem_wdata[63:56]; \
         `endif \
     end
 
@@ -54,7 +56,10 @@ module leiwand_rv32_clint (
     /* verilator lint_off UNUSED */
     input [(`XLEN-1):0] addr,
     input [(`XLEN-1):0] wdata,
-    output reg [(`XLEN-1):0] rdata
+    output reg [(`XLEN-1):0] rdata,
+
+    /* verilator lint_off UNUSED */
+    output reg [12:0] irq_out
 );
     parameter integer WORDS = 3;
     reg [(`XLEN-1):0] mem [WORDS-1:0];
@@ -63,9 +68,9 @@ module leiwand_rv32_clint (
         if(!rst) begin
             if(valid) begin
                 case (addr[15:0])
-                    `MSIP_REG_OFFS: `read_write_mem(`MSIP_ADDR_INTERNAL)
-                    `MTIMECMP_REG_OFFS: `read_write_mem(`MTIMECMP_ADDR_INTERNAL)
-                    `MTIME_REG_OFFS: `read_write_mem(`MTIME_ADDR_INTERNAL)
+                    `MSIP_REG_OFFS: `read_write_mem(mem, wdata, wen, `MSIP_ADDR_INTERNAL)
+                    `MTIMECMP_REG_OFFS: `read_write_mem(mem, wdata, wen, `MTIMECMP_ADDR_INTERNAL)
+                    `MTIME_REG_OFFS: `read_write_mem(mem, wdata, wen, `MTIME_ADDR_INTERNAL)
                     default: rdata <= 0;
                 endcase
                 ready <= 1;
@@ -73,6 +78,12 @@ module leiwand_rv32_clint (
             else begin
                 ready <= 0;
             end
+
+            /* set irq bit */
+            irq_out[`MIE_MIP_MSI_BIT] <= mem[`MSIP_ADDR_INTERNAL][`MSIP_TRIGGER_REG_BIT];
+
+            irq_out[12:4] <= 0;
+            irq_out[2:0] <= 0;
         end
     end
 endmodule

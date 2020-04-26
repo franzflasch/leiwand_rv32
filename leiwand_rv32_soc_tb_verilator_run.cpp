@@ -20,6 +20,8 @@
 #define CLINT_BASE_ADDR 0x2000000
 #define CLINT_REG_MAX   0x200FFFF
 
+#define ENABLE_TRACE 1
+
 void riscv_cpu_g_packet(sds *buf, void *priv)
 {
     size_t i = 0;
@@ -61,7 +63,7 @@ void riscv_cpu_read_mem(sds *buf, size_t addr, size_t no_bytes, void *priv)
     }
 }
 
-void cpu_step(Vleiwand_rv32_soc_tb_verilator *tb)
+void cpu_step(Vleiwand_rv32_soc_tb_verilator *tb, VerilatedVcdC *tfp, int *tick)
 {
     if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage != 0)
     {
@@ -71,9 +73,17 @@ void cpu_step(Vleiwand_rv32_soc_tb_verilator *tb)
 
     while(1)
     {
+        #if(ENABLE_TRACE)
+        tfp->dump (*tick);
+        (*tick)++;
+        #endif
         tb->i_clk = 1;
         tb->eval();
 
+        #if(ENABLE_TRACE)
+        tfp->dump (*tick);
+        (*tick)++;
+        #endif
         tb->i_clk = 0;
         tb->eval();
 
@@ -95,10 +105,14 @@ int main(int argc, char **argv)
     // Create an instance of our module under test
     Vleiwand_rv32_soc_tb_verilator *tb = new Vleiwand_rv32_soc_tb_verilator;
 
+    #if(ENABLE_TRACE)
     Verilated::traceEverOn(true);
     VerilatedVcdC *tfp = new VerilatedVcdC;
     tb->trace (tfp, 99);
-    tfp->open ("leiwand_rv32_soc_tb_verilator.vcd");
+    tfp->open ("leiwand_rv32_soc_tb_verilator_run.vcd");
+    #else
+    VerilatedVcdC *tfp = NULL;
+    #endif
 
     if(argc < 2)
     {
@@ -132,29 +146,37 @@ int main(int argc, char **argv)
     tb->i_rst = 0;
     for(i=0;i<10;i++)
     {
+        #if(ENABLE_TRACE)
         tfp->dump (2*tick);
+        tick++;
+        #endif
         tb->i_clk = 1;
         tb->eval();
-        tick++;
 
+        #if(ENABLE_TRACE)
         tfp->dump (2*tick);
+        tick++;
+        #endif
         tb->i_clk = 0;
         tb->eval();
-        tick++;
     }
 
     tb->i_rst = 1;
     for(i=0;i<10;i++)
     {
+        #if(ENABLE_TRACE)
         tfp->dump (tick);
+        tick++;
+        #endif
         tb->i_clk = 1;
         tb->eval();
-        tick++;
 
+        #if(ENABLE_TRACE)
         tfp->dump (tick);
+        tick++;
+        #endif
         tb->i_clk = 0;
         tb->eval();
-        tick++;
     }
 
     tb->i_rst = 0;
@@ -204,7 +226,7 @@ int main(int argc, char **argv)
 
         if(cpu_exec_continue || cpu_exec_step)
         {
-            cpu_step(tb);
+            cpu_step(tb, tfp, &tick);
             if(cpu_exec_step)
             {
                 gdb_rsp.add_cpu_rx_command(rsp, gdb_rsp_cpu_rx_command.SIG_TRAP);

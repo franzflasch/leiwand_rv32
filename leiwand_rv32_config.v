@@ -1,2 +1,3 @@
 //`define DEBUG
 `define ENABLE_CSR_REGS
+`define ENABLE_IRQ_SUPPORT

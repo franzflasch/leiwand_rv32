@@ -32,11 +32,14 @@
 `define MEM_WIDTH_BYTES 4
 `define MEM_OFFSET 2
 
+
+`define MSTATUS_MIE_BIT 3
+
 /* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
 /* https://static.dev.sifive.com/E31-Coreplex.pdf */
 /* Machine Software Interrupt */
-`define MSI_BIT 3
+`define MIE_MIP_MSI_BIT 3
 /* Machine Timer Interrupt */
-`define MTI_BIT 7
+`define MIE_MIP_MTI_BIT 7
 /* Machine External Interrupt */
-`define MEI_BIT 11
+`define MIE_MIP_MEI_BIT 11

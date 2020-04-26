@@ -37,6 +37,8 @@ module leiwand_rv32_soc_tb_verilator(
     wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [((`XLEN/8)-1):0] mem_wen;
 
+    wire [12:0] irq;
+
     leiwand_rv32_core #(
         .PC_START_VAL(RAM_BASE_ADDR)
     ) cpu_core (
@@ -48,7 +50,9 @@ module leiwand_rv32_soc_tb_verilator(
             .o_mem_addr(mem_addr),
             .i_mem_data(mem_data_cpu_in),
             .o_mem_data(mem_data_cpu_out),
-            .o_mem_wen(mem_wen)
+            .o_mem_wen(mem_wen),
+
+            .i_irq(irq)
     );
 
     wire ram_ready;
@@ -80,7 +84,8 @@ module leiwand_rv32_soc_tb_verilator(
         .wen(mem_wen),
         .addr(mem_addr[(`XLEN-1):0]),
         .wdata(mem_data_cpu_out[(`XLEN-1):0]),
-        .rdata(clint_rdata[(`XLEN-1):0])
+        .rdata(clint_rdata[(`XLEN-1):0]),
+        .irq_out(irq)
     );
 
     wire uart_ready;
