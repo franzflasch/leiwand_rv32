@@ -1,4 +1,4 @@
-tests=(
+tests_ui=(
 lui
 auipc
 jal
@@ -49,7 +49,7 @@ and
 )
 
 if [ "${ARCH}" = "64" ]; then
-    tests+=(
+    tests_ui+=(
         addiw
         slliw
         srliw
@@ -64,3 +64,9 @@ if [ "${ARCH}" = "64" ]; then
         sd
     )
 fi;
+
+
+tests_ua=(
+    amomax_w
+)
+

@@ -13,10 +13,17 @@ mkdir -p qemu_compiled_files
 mkdir -p qemu_traces
 mkdir -p qemu_register_states
 
-for i in "${tests[@]}"
+for i in "${tests_ui[@]}"
 do
-    ./build_test.sh $i linker_script.ld qemu qemu_compiled_files ${ARCH}
+    ./build_test.sh $i linker_script.ld qemu qemu_compiled_files ${ARCH} ui
 done
+
+for i in "${tests_ua[@]}"
+do
+    ./build_test.sh $i linker_script.ld qemu qemu_compiled_files ${ARCH} ua
+done
+
+tests=("${tests_ui[@]}" "${tests_ua[@]}")
 
 for i in "${tests[@]}"
 do

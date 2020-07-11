@@ -15,12 +15,19 @@ mkdir -p leiwandrv32_compiled_files
 mkdir -p leiwandrv32_traces
 mkdir -p leiwandrv32_register_states
 
-for i in "${tests[@]}"
+for i in "${tests_ui[@]}"
 do
-    ./build_test.sh $i linker_script.ld leiwandrv32 leiwandrv32_compiled_files ${ARCH}
+    ./build_test.sh $i linker_script.ld leiwandrv32 leiwandrv32_compiled_files ${ARCH} ui
+done
+
+for i in "${tests_ua[@]}"
+do
+    ./build_test.sh $i linker_script.ld leiwandrv32 leiwandrv32_compiled_files ${ARCH} ua
 done
 
 cur_dir=$(pwd)
+
+tests=("${tests_ui[@]}" "${tests_ua[@]}")
 
 cd ${cur_dir}/..
 ./compile_verilator.sh ${ARCH}
