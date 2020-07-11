@@ -27,7 +27,7 @@ module leiwand_rv32_soc_tb_verilator(
 );
 
     /* 32KiB */
-    parameter RAM_SIZE_BYTES /*verilator public_flat_rw*/ = 'h1000;
+    parameter RAM_SIZE_BYTES /*verilator public_flat_rw*/ = 'h8000;
     parameter RAM_BASE_ADDR /*verilator public_flat_rw*/ = `XLEN'h80000000;
 
     wire mem_valid;

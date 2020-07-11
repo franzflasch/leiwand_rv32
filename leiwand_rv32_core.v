@@ -263,6 +263,10 @@ module leiwand_rv32_core # (
     localparam FUNC3_SH = 3'b001;
     localparam FUNC3_SW = 3'b010;
 
+    localparam OP_ECALL_EBREAK = 7'b1110011;
+    localparam FUNC3_ECALL = 3'b000;
+    localparam FUNC12_ECALL = 12'b000000000000;
+
     reg is_LUI;
     reg is_AUIPC;
     reg is_JAL;
@@ -272,6 +276,7 @@ module leiwand_rv32_core # (
     reg is_ADD, is_SUB, is_SLL, is_SLT, is_SLTU, is_XOR, is_SRL, is_SRA, is_OR, is_AND;
     reg is_LB, is_LH, is_LW, is_LBU, is_LHU;
     reg is_SB, is_SH, is_SW;
+    reg is_ECALL;
 
     /* ALU */
     reg alu_result_slt;
@@ -385,6 +390,7 @@ module leiwand_rv32_core # (
                                 if(!in_irq && csr[MSTATUS][`MSTATUS_MIE_BIT] & csr[MIE][`MIE_MIP_MSI_BIT] & csr[MIP][`MIE_MIP_MSI_BIT]) begin
                                     in_irq <= 1;
                                     csr[MEPC] <= next_pc;
+                                    csr[MCAUSE] <= `MCAUSE_MSI;
                                     next_pc <= csr[MTVEC];
                                     cpu_stage <= STAGE_INSTR_FETCH;
                                 end
@@ -475,6 +481,8 @@ module leiwand_rv32_core # (
                             is_SH <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SH, OP_SB_SH_SW} ) ? 1 : 0;
                             is_SW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_SW, OP_SB_SH_SW} ) ? 1 : 0;
 
+                            is_ECALL <= ({mem_data_in[31:20],mem_data_in[14:12],mem_data_in[6:0]} == {FUNC12_ECALL, FUNC3_ECALL, OP_ECALL_EBREAK} ) ? 1 : 0;
+
                             `ifdef ENABLE_CSR_REGS
                                 is_CSRRW <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRW, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
                                 is_CSRRS <= ({mem_data_in[14:12],mem_data_in[6:0]} == {FUNC3_CSRRS, OP_CSRRW_CSRRS_CSRRC_CSRRWI_CSRRSI_CSRRCI} ) ? 1 : 0;
@@ -508,7 +516,7 @@ module leiwand_rv32_core # (
 
                                 /* J-type */
                                 OP_JAL: begin
-                                    immediate <= { {(`XLEN-21){mem_data_in[31]}}, mem_data_in[19:12], mem_data_in[20], mem_data_in[31:21], 1'b0 };
+                                    immediate <= { {(`XLEN-20){mem_data_in[31]}}, mem_data_in[19:12], mem_data_in[20], mem_data_in[30:21], 1'b0 };
                                 end
 
                                 /* I-type */
@@ -561,18 +569,20 @@ module leiwand_rv32_core # (
                             alu_result_xor <= alu_op1 ^ alu_op2;
                             alu_result_or <= alu_op1 | alu_op2;
                             alu_result_and <= alu_op1 & alu_op2;
-                            alu_result_sl <= alu_op1 << alu_op2[5:0];
-                            `ifdef RV64
-                                alu_result_slw <= alu_op1[31:0] << alu_op2[4:0];
-                                alu_result_srw <= $signed({(is_SRAIW | is_SRAW) ? alu_op1[31] : 1'b0, alu_op1[31:0]}) >>> alu_op2[4:0];
-                            `endif
-                            alu_result_sr <= $signed({(is_SRA | is_SRAI) ? alu_op1[(`XLEN-1)] : 1'b0, alu_op1}) >>> alu_op2[4:0];
                             alu_result_sub <= alu_op1 - alu_op2;
                             alu_result_add <= alu_op1 + alu_op2;
-
                             alu_branch_eq <= (alu_branch_op1 == alu_branch_op2);
                             alu_branch_ge <= ($signed(alu_branch_op1) >= $signed(alu_branch_op2));
                             alu_branch_geu <= (alu_branch_op1 >= alu_branch_op2);
+                            `ifdef RV64
+                                alu_result_sl <= alu_op1 << alu_op2[5:0];
+                                alu_result_slw <= alu_op1[31:0] << alu_op2[4:0];
+                                alu_result_srw <= $signed({(is_SRAIW | is_SRAW) ? alu_op1[31] : 1'b0, alu_op1[31:0]}) >>> alu_op2[4:0];
+                                alu_result_sr <= $signed({(is_SRA | is_SRAI) ? alu_op1[(`XLEN-1)] : 1'b0, alu_op1}) >>> alu_op2[5:0];
+                            `else
+                                alu_result_sl <= alu_op1 << alu_op2[4:0];
+                                alu_result_sr <= $signed({(is_SRA | is_SRAI) ? alu_op1[(`XLEN-1)] : 1'b0, alu_op1}) >>> alu_op2[4:0];
+                            `endif
 
                             cpu_stage <= (is_load | is_store) ? STAGE_INSTR_ACCESS : STAGE_INSTR_WRITEBACK;
                         end
@@ -669,6 +679,11 @@ module leiwand_rv32_core # (
                                 else if (is_MRET) begin
                                     next_pc <= csr[MEPC];
                                     in_irq <= 0;
+                                end
+                                else if (is_ECALL) begin
+                                    csr[MEPC] <= pc;
+                                    next_pc <= csr[MTVEC];
+                                    csr[MCAUSE] <= `MCAUSE_ECALL;
                                 end
                             `endif
                             else x[rd] <= alu_result;

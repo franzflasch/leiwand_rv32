@@ -12,6 +12,8 @@
 #define PRINTF_FMT "%08x"
 #endif
 
+#define MAX_ROUNDS 500000
+
 int main(int argc, char **argv) {
 
     int tick = 0;
@@ -104,7 +106,7 @@ int main(int argc, char **argv) {
 
     tb->i_rst = 0;
 
-    for(i=0;i<100000;i++)
+    for(i=0;i<MAX_ROUNDS;i++)
     {
         if(tb->leiwand_rv32_soc_tb_verilator__DOT__cpu_core__DOT__cpu_stage == 2)
         {
@@ -135,7 +137,7 @@ int main(int argc, char **argv) {
         tick++;
     }
 
-    if(i==100000)
+    if(i==MAX_ROUNDS)
         printf("SOMETHING WENT WRONG!\n");
     else
     {

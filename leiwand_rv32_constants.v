@@ -35,6 +35,9 @@
 
 `define MSTATUS_MIE_BIT 3
 
+`define MCAUSE_MSI   'h03
+`define MCAUSE_ECALL 'h0b
+
 /* Interrupt Concept taken from SiFive Coreplex Manual - Chapter 6 Interrupts */
 /* https://static.dev.sifive.com/E31-Coreplex.pdf */
 /* Machine Software Interrupt */

@@ -61,3 +61,6 @@ priorities:
     order of destined privilege mode. Multiple simultaneous interrupts destined for the same privilege
     mode are handled in the following decreasing priority order: MEI, MSI, MTI, SEI, SSI, STI, UEI,
     USI, UTI. Synchronous exceptions are of lower priority than all interrupts.
+
+links:
+https://sifive.cdn.prismic.io/sifive/0d163928-2128-42be-a75a-464df65e04e0_sifive-interrupt-cookbook.pdf
