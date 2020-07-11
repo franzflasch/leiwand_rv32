@@ -15,7 +15,7 @@ mkdir -p qemu_register_states
 
 for i in "${tests[@]}"
 do
-    ./build_test.sh $i link_qemu.ld qemu qemu_compiled_files ${ARCH}
+    ./build_test.sh $i linker_script.ld qemu qemu_compiled_files ${ARCH}
 done
 
 for i in "${tests[@]}"

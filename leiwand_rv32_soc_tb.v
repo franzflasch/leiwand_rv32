@@ -23,7 +23,8 @@
 
 module leiwand_rv32_core_tb();
 
-    parameter MEMORY_SIZE = 4096;
+    parameter RAM_SIZE_BYTES /*verilator public_flat_rw*/ = 'h8000;
+    parameter RAM_BASE_ADDR /*verilator public_flat_rw*/ = `XLEN'h80000000;
 
     reg clk = 0;
     reg reset = 0;
@@ -35,9 +36,11 @@ module leiwand_rv32_core_tb();
     wire [(`XLEN-1):0] mem_data_cpu_out;
     wire [((`XLEN/8)-1):0] mem_wen;
 
-    wire [(`XLEN-1):0] dummy_irq_status;
+    wire [12:0] irq;
 
-    leiwand_rv32_core
+    leiwand_rv32_core #(
+        .PC_START_VAL(RAM_BASE_ADDR)
+    )
         cpu_core (
             clk,
             reset,
@@ -47,17 +50,18 @@ module leiwand_rv32_core_tb();
             mem_addr,
             mem_data_cpu_in,
             mem_data_cpu_out,
-            mem_wen
+            mem_wen,
+
+            irq
     );
 
     leiwand_rv32_simple_mem #(
-        .WORDS(MEMORY_SIZE),
-        .WIDTH(`XLEN)
+        .WORDS(RAM_SIZE_BYTES/`MEM_WIDTH_BYTES)
     ) internal_rom (
         .clk(clk),
         .rst(reset),
 
-        .valid(mem_valid && (mem_addr >= `XLEN'h80000000) && (mem_addr < `XLEN'h80000000 + ((`XLEN/8)*MEMORY_SIZE))),
+        .valid(mem_valid && (mem_addr >= RAM_BASE_ADDR) && (mem_addr < RAM_BASE_ADDR + (RAM_SIZE_BYTES))),
         .ready(mem_ready),
         .wen(mem_wen),
         .addr(mem_addr[(`XLEN-1):0]),
@@ -76,7 +80,7 @@ module leiwand_rv32_core_tb();
 
     integer i, j;
     integer file_size, file, tmp;
-    reg [(`XLEN-1):0] tmp_mem [MEMORY_SIZE-1:0];
+    reg [(`MEM_WIDTH-1):0] tmp_mem [(RAM_SIZE_BYTES/`MEM_WIDTH_BYTES)-1:0];
 
     initial begin
 
@@ -89,14 +93,8 @@ module leiwand_rv32_core_tb();
 
         $display("file size: %d", file_size);
 
-        for (i = 0; i < MEMORY_SIZE; i = i + 1) begin
-            //internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
-            `ifdef RV64
-                internal_rom.mem[i][63:32] = { {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
-                internal_rom.mem[i][31:0] = {{tmp_mem[i][39:32]}, {tmp_mem[i][47:40]}, {tmp_mem[i][55:48]}, {tmp_mem[i][63:56]}};
-            `else
-                internal_rom.mem[i] = { {(`XLEN-32){1'b0}}, {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
-            `endif
+        for (i = 0; i < (RAM_SIZE_BYTES/`MEM_WIDTH_BYTES); i = i + 1) begin
+            internal_rom.mem[i] = { {tmp_mem[i][07:00]}, {tmp_mem[i][15:08]}, {tmp_mem[i][23:16]}, {tmp_mem[i][31:24]} };
             $display ("internal ram %d: %x", i, internal_rom.mem[i]);
         end
 

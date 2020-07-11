@@ -17,7 +17,7 @@ mkdir -p leiwandrv32_register_states
 
 for i in "${tests[@]}"
 do
-    ./build_test.sh $i link_leiwandrv32.ld leiwandrv32 leiwandrv32_compiled_files ${ARCH}
+    ./build_test.sh $i linker_script.ld leiwandrv32 leiwandrv32_compiled_files ${ARCH}
 done
 
 cur_dir=$(pwd)
